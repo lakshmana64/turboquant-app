@@ -1,0 +1,17 @@
+# TurboQuant Default Configuration
+
+# Stage 1: Scalar Quantization
+num_bits: 2               # Bits per coordinate (MSE-optimal)
+rotation_seed: 42         # Fixed seed for random orthogonal matrix
+
+# Stage 2: QJL Residual Correction
+qjl_dim: 64               # Dimension of 1-bit residual correction (m)
+qjl_seed: 42              # Fixed seed for Gaussian projection
+
+# System Settings
+device: "cpu"             # Default device (cpu, cuda, mps)
+dtype: "float32"          # Internal computation precision
+
+# Batch Processing
+batch_size: 1024          # Preferred batch size for large tensors
+num_workers: 4            # Workers for parallel quantization

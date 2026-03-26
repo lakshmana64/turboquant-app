@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Node.js
+node_modules/
+dist/
+ts/node_modules/
+*.tsbuildinfo
+
+# Tensors
+*.pt
+*.pth
+encoded.pt
+
+# System
+.DS_Store
+.env

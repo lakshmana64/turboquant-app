@@ -1,0 +1,20 @@
+{
+  "name": "turboquant-ts",
+  "version": "1.0.0",
+  "description": "TypeScript port of TurboQuant unbiased inner product estimation",
+  "type": "module",
+  "main": "dist/sdk/optimize.js",
+  "scripts": {
+    "benchmark": "NODE_OPTIONS='--loader ts-node/esm --no-warnings' node ts/benchmarks/accuracy_test.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  }
+}
