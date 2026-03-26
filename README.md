@@ -4,11 +4,9 @@ TurboQuant is a two-stage quantization toolkit for unbiased inner-product estima
 
 ## Links
 
-- GitHub: `https://github.com/<your-username>/turboquant-app`
+- GitHub: `https://github.com/tonbistudio/turboquant-pytorch`
 - Paper: https://arxiv.org/abs/2504.19874
 - Plugin docs: `integrations/plugins/README.md`
-
-Replace `<your-username>` once the final GitHub remote is created.
 
 ## Why TurboQuant
 
@@ -31,8 +29,8 @@ Replace `<your-username>` once the final GitHub remote is created.
 ### Python
 
 ```bash
-git clone https://github.com/<your-username>/turboquant-app.git
-cd turboquant-app
+git clone https://github.com/tonbistudio/turboquant-pytorch.git
+cd turboquant-pytorch
 pip install -e .
 ```
 
@@ -183,7 +181,7 @@ python benchmarks/recall_test.py
 
 ### Repository
 
-- GitHub: `https://github.com/<your-username>/turboquant-app`
+- GitHub: `https://github.com/tonbistudio/turboquant-pytorch`
 
 ### Paper
 

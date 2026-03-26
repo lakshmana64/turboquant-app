@@ -7,8 +7,8 @@ Thank you for your interest in contributing to TurboQuant! We welcome contributi
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/your-username/turboquant.git
-   cd turboquant
+   git clone https://github.com/tonbistudio/turboquant-pytorch.git
+   cd turboquant-pytorch
    ```
 3. **Create a virtual environment** and install dependencies:
    ```bash
