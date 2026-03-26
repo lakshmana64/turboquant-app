@@ -140,15 +140,16 @@ The following real checks were run on this machine against a live Ollama instanc
 Using `num_bits=4` and `qjl_dim=64`:
 
 - `nomic-embed-text:latest`: `dim=768`, `compression_ratio=12.76%`, `compression_factor=7.84x`, `mse=0.00137484`, `correlation=0.9999999943`
-- `llama3:latest`: `dim=4096`, `compression_factor=7.97x`, `correlation=0.9999029384`
+- `llama3:latest`: `dim=4096`, `compression_ratio=12.55%`, `compression_factor=7.97x`, `mse=271.734619`, `correlation=0.9999995254`
 
-#### Full Benchmark Command
+#### Full Benchmark Commands
 
 ```bash
 python integrations/ollama_test.py --model nomic-embed-text:latest --qjl 64 --sq 4
+python integrations/ollama_test.py --url http://127.0.0.1:11434 --model llama3:latest --qjl 64 --sq 4
 ```
 
-#### Full Benchmark Result
+#### `nomic-embed-text:latest` Full Benchmark Result
 
 | Metric | Value |
 |--------|-------|
@@ -162,6 +163,31 @@ python integrations/ollama_test.py --model nomic-embed-text:latest --qjl 64 --sq
 | Attention MSE | `0.00000207` |
 | Attention cosine similarity | `0.999992` |
 | Top-3 agreement | `83.33%` |
+
+#### `llama3:latest` Full Benchmark Result
+
+| Metric | Value |
+|--------|-------|
+| Dimension | `4096` |
+| Bits per dim | `4.02` |
+| Compression | `12.55%` of FP32 (`8.0x smaller`) |
+| Correlation | `0.995912` |
+| Mean squared error | `136294.0625` |
+| Mean absolute error | `299.779114` |
+| Max absolute error | `873.741211` |
+| Attention MSE | `0.00000000` |
+| Attention cosine similarity | `1.000000` |
+| Top-3 agreement | `100.00%` |
+
+#### `llama3:latest` Memory Accounting
+
+| Baseline | Original | Compressed | Effective Factor |
+|----------|----------|------------|------------------|
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
+| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+
+The benchmark headline uses the FP32 bit-budget baseline. The current Python runtime stores low-bit indices in byte tensors, so real in-memory savings are smaller until bit-packing is implemented.
 
 #### Retrieval Smoke Test
 
@@ -184,15 +210,16 @@ For the query `"embedding compression methods"`, the top compressed retrieval re
 | Code Semantics | Ordering Acc | 0.85 | 0.80 | ✓ PASS |
 | Attention Fidelity | Cosine Sim | 0.94 | 0.90 | ✓ PASS |
 
-### Compression Ratios
+### Compression Baselines
 
-| Format | Bits/Dim | Ratio | Quality Loss |
-|--------|----------|-------|--------------|
-| FP16 | 16 | 2.0x | < 0.1% |
-| TurboQuant (4-bit) | ~4.5 | 7.1x | < 2% |
-| TurboQuant (2-bit) | ~2.5 | 12.8x | 3-5% |
-| FP8 | 8 | 4.0x | < 1% |
-| INT8 | 8 | 4.0x | 1-2% |
+| Format / Baseline | Bits/Dim | Effective Factor | Notes |
+|-------------------|----------|------------------|-------|
+| FP16 | `16` | `2.0x` vs FP32 | Half-precision baseline |
+| FP8 | `8` | `4.0x` vs FP32 | Hardware-dependent |
+| INT8 | `8` | `4.0x` vs FP32 | Standard 8-bit baseline |
+| TurboQuant (4-bit plugin reporting) | `4.02` | `7.97x` vs FP32 | Live `llama3:latest` Ollama check |
+| TurboQuant (4-bit packed theoretical) | `4.02` | `3.98x` vs FP16 | Target KV-cache bit-budget |
+| TurboQuant (4-bit current Python runtime) | `n/a` | `1.99x` vs FP16 | Byte-addressed indices today |
 
 ---
 
@@ -214,15 +241,17 @@ python demo_llm.py --model mixtral
 python demo_llm.py --model nomic-embed-text
 ```
 
-### HuggingFace Models
+### Hugging Face Transformers
 
 ```python
-from turboquant.integrations.plugins import TurboQuantEmbedding
+from transformers import AutoModelForCausalLM
+from turboquant.integrations.huggingface import apply_turboquant_to_hf_model
 
-# Use any HuggingFace embedding model
-embed_model = TurboQuantEmbedding(
-    base_model="BAAI/bge-large-en-v1.5",
-    num_bits=4
+model = AutoModelForCausalLM.from_pretrained("meta-llama/Meta-Llama-3-8B")
+model = apply_turboquant_to_hf_model(
+    model,
+    sq_bits=4,
+    qjl_dim=64,
 )
 ```
 

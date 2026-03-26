@@ -27,3 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Dashboard**: Gradio-based visual benchmarker.
   - **CLI**: Comprehensive command-line interface for quantization tasks.
 - **TypeScript Support**: Full TFJS implementation in `ts/`.
+
+### Changed
+- **Integrations**: `integrations/huggingface.py` now provides a concrete attention wrapper with compressed KV-cache round-tripping.
+- **Haystack**: `TurboQuantDocumentEmbedder` now compresses embeddings before returning pipeline results.
+- **VLLM**: `patch_vllm_with_turboquant()` now attaches concrete compression and attention helpers to engine instances.
+- **Documentation**: Updated `README.md`, `LLM_TESTING.md`, `integrations/plugins/README.md`, and status docs with March 27, 2026 local Ollama validation for `nomic-embed-text:latest` and `llama3:latest`.
+- **Memory Reporting**: Documented the difference between FP32 plugin reporting, packed FP16 KV-cache targets, and current Python runtime storage.

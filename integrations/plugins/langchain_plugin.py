@@ -23,6 +23,8 @@ Usage:
 import torch
 from typing import List, Optional, Any
 
+from turboquant.core.codec import TurboQuantConfig
+
 try:
     from langchain_core.embeddings import Embeddings
     from langchain_core.documents import Document
@@ -90,8 +92,7 @@ class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            num_bits=num_bits,
-            qjl_dim=qjl_dim,
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
             device=device
         )
         
@@ -274,14 +275,21 @@ class TurboQuantFAISS:
         self.qjl_dim = qjl_dim
         
         # Get embedding dimension
-        embed_dim = vectorstore.embedding_dimension
+        if hasattr(vectorstore, "index") and hasattr(vectorstore.index, "d"):
+            embed_dim = int(vectorstore.index.d)
+        else:
+            embedding_backend = getattr(vectorstore, "embeddings", None)
+            if embedding_backend is None:
+                embedding_backend = getattr(vectorstore, "embedding_function", None)
+            if embedding_backend is None:
+                raise ValueError("Could not infer embedding dimension from LangChain vector store")
+            embed_dim = len(embedding_backend.embed_query("turboquant-dimension-probe"))
         
         # Initialize codec
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            num_bits=num_bits,
-            qjl_dim=qjl_dim,
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
             device=device
         )
         
@@ -345,7 +353,13 @@ class TurboQuantFAISS:
             List of (document, score) tuples
         """
         # Get query embedding
-        query_embedding = self.vectorstore.embedding.embed_query(query)
+        embedding_backend = getattr(self.vectorstore, "embeddings", None)
+        if embedding_backend is None:
+            embedding_backend = getattr(self.vectorstore, "embedding_function", None)
+        if embedding_backend is None:
+            raise ValueError("LangChain vector store does not expose an embedding backend")
+
+        query_embedding = embedding_backend.embed_query(query)
         query_tensor = torch.tensor(query_embedding, device=self.codec.device)
         
         if use_compressed and hasattr(self, 'encoded'):
@@ -372,9 +386,9 @@ class TurboQuantFAISS:
         results = []
         docs = list(self.vectorstore.docstore._dict.values())
         
-        for idx in top_indices:
-            if idx < len(docs):
-                results.append((docs[idx], top_scores[idx].item()))
+        for position, idx in enumerate(top_indices.tolist()):
+            if 0 <= idx < len(docs):
+                results.append((docs[idx], float(top_scores[position].item())))
         
         return results
     

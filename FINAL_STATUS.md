@@ -1,7 +1,7 @@
 # TurboQuant - Final Application Status
 
-**Last Updated**: March 27, 2025
-**Version**: 1.0.0 (Production Ready)
+**Last Updated**: March 27, 2026
+**Version**: 1.0.0 (GitHub Ready)
 
 ---
 
@@ -15,12 +15,12 @@ The TurboQuant application is **fully implemented and validated** with all core 
 
 | Metric | Count |
 |--------|-------|
-| **Python Modules** | 54 |
-| **Core Modules** | 11 |
-| **Plugin Integrations** | 7 |
-| **Benchmark Scripts** | 8 |
-| **Documentation Files** | 10+ |
-| **Validation Tests** | 79/79 PASSED |
+| **Python Modules** | 57 |
+| **Core Modules** | 12 |
+| **Registry Plugins** | 8 |
+| **Benchmark Scripts** | 9 |
+| **Documentation Files** | 9 |
+| **Validation** | `103` app checks + `25` pytest passes |
 
 ---
 
@@ -47,12 +47,20 @@ The TurboQuant application is **fully implemented and validated** with all core 
 | Plugin | Framework | Status |
 |--------|-----------|--------|
 | `ollama.py` | Ollama | ✅ |
+| `openai_plugin.py` | OpenAI | ✅ |
+| `sentence_transformers_plugin.py` | SentenceTransformers | ✅ |
 | `llama_index_plugin.py` | LlamaIndex | ✅ |
 | `langchain_plugin.py` | LangChain | ✅ |
 | `haystack_plugin.py` | Haystack | ✅ |
 | `tgi_plugin.py` | Text Generation Inference | ✅ |
 | `vllm_plugin.py` | vLLM | ✅ |
 | `registry.py` | Plugin management | ✅ |
+
+### Model Wrappers
+
+| Module | Surface | Status |
+|--------|---------|--------|
+| `integrations/huggingface.py` | Hugging Face attention wrapper + compressed KV-cache round-tripping | ✅ |
 
 ### Benchmarks & Tests (`benchmarks/`)
 
@@ -75,9 +83,11 @@ The TurboQuant application is **fully implemented and validated** with all core 
 - [x] Vectorized batch operations (5-20x faster)
 
 ### Phase 2: Features ✅
+- [x] Hugging Face wrapper
 - [x] LlamaIndex integration
 - [x] LangChain integration
 - [x] Haystack integration
+- [x] VLLM and TGI serving adapters
 - [x] Streaming encoder
 - [x] Mixed precision (FP8/INT8/INT4)
 
@@ -93,7 +103,7 @@ The TurboQuant application is **fully implemented and validated** with all core 
 
 ```
 turboquant-app/
-├── core/                       # Core quantization engine (11 modules)
+├── core/                       # Core quantization engine (12 Python files)
 │   ├── codec.py               # Two-stage codec
 │   ├── scalar_quant.py        # Scalar quantization
 │   ├── qjl_projection.py      # QJL projection
@@ -106,8 +116,10 @@ turboquant-app/
 │   ├── aoti.py                # AOT compilation
 │   └── distributed.py         # Multi-GPU
 │
-├── integrations/plugins/       # Framework integrations (7 plugins)
+├── integrations/plugins/       # Provider, framework, and serving adapters
 │   ├── ollama.py              # Ollama
+│   ├── openai_plugin.py       # OpenAI
+│   ├── sentence_transformers_plugin.py # SentenceTransformers
 │   ├── llama_index_plugin.py  # LlamaIndex
 │   ├── langchain_plugin.py    # LangChain
 │   ├── haystack_plugin.py     # Haystack
@@ -115,7 +127,7 @@ turboquant-app/
 │   ├── vllm_plugin.py         # vLLM
 │   └── registry.py            # Plugin system
 │
-├── benchmarks/                 # Validation suite (8 scripts)
+├── benchmarks/                 # Validation suite (9 scripts)
 │   ├── llm_tests.py           # LLM tests
 │   ├── unbiasedness.py        # Unbiasedness
 │   ├── attention_test.py      # Attention
@@ -140,17 +152,13 @@ turboquant-app/
 
 ## 🎯 Validation Results
 
-### Automated Tests: 79/79 PASSED ✅
+### Validation Snapshot ✅
 
-```
-1. FILE STRUCTURE:        24/24 ✓
-2. PYTHON SYNTAX:         22/22 ✓
-3. MODULE STRUCTURE:       4/4  ✓
-4. KEY DEFINITIONS:       15/15 ✓
-5. DOCUMENTATION:          5/5  ✓
-6. IMPORT STATEMENTS:      4/4  ✓
-7. CLI VALIDATION:         5/5  ✓
-```
+- `python validate_app.py`: `103/103` checks passed
+- `pytest -q`: `25/25` tests passed
+- `npm run build`: passed
+- `turboquant --help`: passed
+- Local Ollama validation on March 27, 2026: `nomic-embed-text:latest` and `llama3:latest` both passed
 
 ### LLM Tests (Requires Ollama)
 
@@ -239,12 +247,14 @@ vectorstore = FAISS.from_documents(documents, embeddings)
 
 ### Compression Ratios
 
-| Format | Ratio | Quality Loss |
-|--------|-------|--------------|
-| FP16 | 2.0x | < 0.1% |
-| FP8 | 4.0x | < 1% |
-| TurboQuant (4-bit) | 7.1x | < 2% |
-| INT4 | 8.0x | 3-5% |
+| Format / Baseline | Effective Factor | Notes |
+|-------------------|------------------|-------|
+| FP16 | `2.0x` vs FP32 | Half-precision baseline |
+| FP8 | `4.0x` vs FP32 | Hardware-dependent |
+| TurboQuant (4-bit plugin reporting) | `7.97x` vs FP32 | Live `llama3:latest` Ollama check |
+| TurboQuant (4-bit packed theoretical) | `3.98x` vs FP16 | KV-cache target |
+| TurboQuant (4-bit current Python runtime) | `1.99x` vs FP16 | Byte-addressed indices today |
+| INT4 | `8.0x` vs FP32 | Standard fixed-point reference |
 
 ---
 
@@ -294,11 +304,11 @@ All three phases of development are complete:
 - **Phase 3**: Production readiness ✅
 
 The implementation includes:
-- 11 core modules
-- 7 plugin integrations
-- 8 benchmark scripts
+- 12 core modules
+- 8 registry plugins plus a Hugging Face wrapper
+- 9 benchmark scripts
 - Comprehensive documentation
-- 79/79 validation tests passing
+- `103` structural checks and `25` pytest cases passing
 
 **Next Steps**:
 1. Install dependencies: `pip install torch scipy requests`
@@ -319,6 +329,6 @@ For issues or questions:
 ---
 
 **Status**: ✅ PRODUCTION READY
-**Validation**: ✅ 79/79 TESTS PASSED
+**Validation**: ✅ 103 APP CHECKS + 25 PYTESTS PASSED
 **Documentation**: ✅ COMPLETE
 **Performance**: ✅ OPTIMIZED

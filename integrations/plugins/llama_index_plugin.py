@@ -26,6 +26,8 @@ Usage:
 import torch
 from typing import List, Optional, Any
 
+from turboquant.core.codec import TurboQuantConfig
+
 try:
     from llama_index.core.node_parser import TextSplitter
     from llama_index.core.embeddings import BaseEmbedding
@@ -106,8 +108,7 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            num_bits=num_bits,
-            qjl_dim=qjl_dim,
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
             device=device
         )
         
@@ -293,8 +294,7 @@ class TurboQuantVectorStore:
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            num_bits=num_bits,
-            qjl_dim=qjl_dim,
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
             device=device
         )
         

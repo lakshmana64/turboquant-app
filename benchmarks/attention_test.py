@@ -82,16 +82,12 @@ def benchmark_attention(
     
     # 3. Top-K token selection agreement
     topk = min(10, seq_len)
-    for h in range(num_heads):
-        true_topk = true_scores[h].topk(topk).indices.sort().values
-        est_topk = est_scores[h].topk(topk).indices.sort().values
-        agreement = (true_topk == est_topk).float().mean().item()
     
     # Average over heads
     agreements = []
     for h in range(num_heads):
         true_topk = true_scores[h].topk(topk).indices.sort().values
-        est_topk = est_scores[h].topk(topk).indices.sort().value
+        est_topk = est_scores[h].topk(topk).indices.sort().values
         agreement = (true_topk == est_topk).float().mean().item()
         agreements.append(agreement)
     topk_agreement = sum(agreements) / len(agreements)

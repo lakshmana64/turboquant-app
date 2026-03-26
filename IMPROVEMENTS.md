@@ -272,9 +272,9 @@ encoder.append(token)
 **File**: `integrations/plugins/vllm_plugin.py`
 
 **Features**:
-- `TurboQuantVLLMAdapter` for PagedAttention hooks
+- `TurboQuantVLLMAdapter` for head-wise PagedAttention cache compression
 - Block-wise compression for VLLM KV caches
-- Experimental engine patching utility
+- Concrete `patch_vllm_with_turboquant()` helper for engine-level compression and attention hooks
 
 ### 4.2 TGI Integration
 
@@ -290,7 +290,16 @@ encoder.append(token)
 
 **Features**:
 - `TurboQuantDocumentStore` - Compressed vector store for Haystack
-- `TurboQuantDocumentEmbedder` - Integrated compression in pipelines
+- `TurboQuantDocumentEmbedder` - Compresses embeddings before handing them back to the pipeline
+
+### 4.4 Hugging Face Integration
+
+**File**: `integrations/huggingface.py`
+
+**Features**:
+- `TurboQuantAttentionWrapper` for wrapping attention layers
+- `CompressedPastKeyValue` cache format for compressed KV round-tripping
+- `apply_turboquant_to_hf_model()` to patch compatible Transformer models recursively
 
 ---
 
@@ -313,10 +322,15 @@ turboquant-app/
 ├── integrations/plugins/
 │   ├── __init__.py              # Updated exports
 │   ├── ollama.py                # Ollama plugin
+│   ├── openai_plugin.py         # OpenAI plugin
+│   ├── sentence_transformers_plugin.py # SentenceTransformers plugin
 │   ├── ollama_cli.py            # Ollama CLI
 │   ├── registry.py              # Plugin registry
 │   ├── llama_index_plugin.py    # NEW: LlamaIndex
-│   └── langchain_plugin.py      # NEW: LangChain
+│   ├── langchain_plugin.py      # NEW: LangChain
+│   ├── haystack_plugin.py       # NEW: Haystack
+│   ├── tgi_plugin.py            # NEW: TGI
+│   └── vllm_plugin.py           # NEW: vLLM
 │
 └── benchmarks/
     ├── unbiasedness.py          # Unbiasedness test
@@ -462,8 +476,13 @@ codec = MixedPrecisionCodec(
 | Module | Key Classes | Description |
 |--------|-------------|-------------|
 | `ollama` | `OllamaPlugin` | Ollama embeddings |
+| `openai_plugin` | `OpenAIPlugin` | OpenAI embeddings |
+| `sentence_transformers_plugin` | `SentenceTransformersPlugin` | Local SentenceTransformers embeddings |
 | `llama_index_plugin` | `TurboQuantEmbedding` | LlamaIndex integration |
 | `langchain_plugin` | `TurboQuantEmbeddings` | LangChain integration |
+| `haystack_plugin` | `TurboQuantDocumentStore`, `TurboQuantDocumentEmbedder` | Haystack integration |
+| `vllm_plugin` | `TurboQuantVLLMAdapter` | VLLM serving hooks |
+| `tgi_plugin` | `TurboQuantTGIAdapter` | TGI serving hooks |
 
 ---
 
@@ -516,14 +535,14 @@ embeddings = TurboQuantEmbeddings()
 All three phases of improvements have been implemented:
 
 ✅ **Phase 1**: 10-50x performance improvement with GPU acceleration
-✅ **Phase 2**: New integrations for LlamaIndex, LangChain, and streaming
+✅ **Phase 2**: New integrations for Hugging Face, LlamaIndex, LangChain, Haystack, VLLM, and TGI
 ✅ **Phase 3**: Production monitoring and metrics
 
 The implementation is now:
 - **Fast**: GPU-accelerated with vectorized operations
 - **Efficient**: Streaming encoder for memory-constrained environments
 - **Flexible**: Mixed precision support (FP8/INT8/INT4)
-- **Integrated**: LlamaIndex and LangChain plugins
+- **Integrated**: Provider, framework, and serving adapters across the repo
 - **Observable**: Comprehensive monitoring and logging
 
-Remaining work (AOTI compilation, distributed support) can be added incrementally as needed for specific deployment scenarios.
+Remaining work is mostly around deeper third-party runtime validation and optional bit-packing for even better memory efficiency.

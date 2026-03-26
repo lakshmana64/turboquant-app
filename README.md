@@ -20,6 +20,7 @@ TurboQuant is a two-stage quantization toolkit for unbiased inner-product estima
 - `turboquant/`: installable Python package
 - `app.py`: Gradio dashboard for interactive compression experiments
 - `cli/` and `turboquant/cli/`: command-line quantization workflow
+- `integrations/huggingface.py`: Hugging Face attention wrapper with compressed KV-cache hooks
 - `integrations/plugins/`: Ollama, OpenAI, SentenceTransformers, LangChain, LlamaIndex, VLLM, TGI, and Haystack adapters
 - `ts/`: TypeScript reference implementation
 - `benchmarks/`: accuracy, memory, recall, and Ollama-based validation scripts
@@ -107,6 +108,10 @@ Useful adapters:
 - `SentenceTransformersPlugin` for local sentence-transformers models
 - `TurboQuantEmbeddings` for LangChain
 - `TurboQuantEmbedding` for LlamaIndex
+- `TurboQuantDocumentStore` and `TurboQuantDocumentEmbedder` for Haystack
+- `patch_vllm_with_turboquant` for VLLM serving hooks
+
+For Hugging Face Transformers, use `apply_turboquant_to_hf_model()` from `integrations/huggingface.py`.
 
 See `integrations/plugins/README.md` for detailed usage and local plugin validation results.
 
@@ -123,10 +128,12 @@ Real Ollama validation was run on March 27, 2026 on this machine.
 
 Using `num_bits=4` and `qjl_dim=64`:
 
+Exact MSE and correlation vary by prompt. The numbers below are from the latest direct validation checks on March 27, 2026.
+
 | Model | Dim | Compression Ratio | Compression Factor | MSE | Correlation |
 |------|-----|-------------------|--------------------|-----|-------------|
 | `nomic-embed-text:latest` | `768` | `12.76%` | `7.84x` | `0.00137484` | `0.9999999943` |
-| `llama3:latest` | `4096` | n/a | `7.97x` | n/a | `0.9999029384` |
+| `llama3:latest` | `4096` | `12.55%` | `7.97x` | `271.734619` | `0.9999995254` |
 
 ### End-To-End Ollama Benchmark
 
@@ -151,6 +158,39 @@ Observed benchmark:
 | Attention cosine similarity | `0.999992` |
 | Top-3 agreement | `83.33%` |
 
+### `llama3:latest` Benchmark
+
+Command used:
+
+```bash
+python integrations/ollama_test.py --url http://127.0.0.1:11434 --model llama3:latest --qjl 64 --sq 4
+```
+
+Observed benchmark:
+
+| Metric | Value |
+|--------|-------|
+| Dimension | `4096` |
+| Bits per dim | `4.02` |
+| Compression | `12.55%` of FP32 storage (`8.0x smaller`) |
+| Inner-product correlation | `0.995912` |
+| Mean squared error | `136294.0625` |
+| Mean absolute error | `299.779114` |
+| Max absolute error | `873.741211` |
+| Attention MSE | `0.00000000` |
+| Attention cosine similarity | `1.000000` |
+| Top-3 agreement | `100.00%` |
+
+### `llama3:latest` Memory Accounting
+
+| Baseline | Original | Compressed | Effective Factor |
+|----------|----------|------------|------------------|
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
+| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+
+The first row is the headline number reported by the Ollama plugin and benchmark. The last row reflects the current Python implementation, where low-bit indices are stored in byte-addressed tensors rather than bit-packed buffers.
+
 ### Retrieval Smoke Test
 
 For the query `"embedding compression methods"`, the top compressed retrieval result was `"vector compression for embeddings"`.
@@ -159,7 +199,7 @@ For the query `"embedding compression methods"`, the top compressed retrieval re
 
 The Ollama plugin and `integrations/ollama_test.py` report compression relative to FP32 embedding storage.
 
-The core SDK and dashboard use an FP16 baseline for KV-cache-oriented reporting, so their `compression_factor` values will be lower for the same `num_bits` and `qjl_dim`. That difference is expected.
+The core SDK and dashboard use an FP16 baseline for KV-cache-style reporting. In addition, the current Python runtime stores low-bit indices in byte tensors, so the observed in-memory savings are lower than the theoretical packed bit-budget until bit-packing is added.
 
 ## Validation Commands
 

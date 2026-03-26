@@ -379,6 +379,35 @@ class TestCodec:
         assert scores.shape == (100,)
         assert torch.isfinite(scores).all()
 
+    def test_codec_llama3_dimensions(self, device):
+        """Test with llama3 dimensions (dim=4096)."""
+        from turboquant.core.codec import TurboQuantCodec, TurboQuantConfig
+        
+        dim = 4096
+        config = TurboQuantConfig(num_bits=4, qjl_dim=64, seed=42)
+        codec = TurboQuantCodec(dim=dim, config=config, device=device)
+        
+        # Generate some synthetic embeddings
+        torch.manual_seed(42)
+        x = torch.randn(5, dim, device=device)
+        # Normalize to simulate real embeddings
+        x = x / x.norm(dim=1, keepdim=True)
+        
+        # Encode
+        encoded = codec.encode_keys_batch(x)
+        
+        # Query
+        query = x[0].unsqueeze(0)
+        estimates = codec.estimate_inner_products(query, encoded)
+        
+        # Self-dot product should be close to 1
+        assert abs(estimates[0, 0].item() - 1.0) < 0.15
+        
+        # Correlation should be very high
+        true_dots = query @ x.T
+        correlation = torch.corrcoef(torch.stack([true_dots.squeeze(), estimates.squeeze()]))[0, 1].item()
+        assert correlation > 0.95
+
 
 # ============================================================================
 # Integration Tests

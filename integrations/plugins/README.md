@@ -101,6 +101,29 @@ matches = plugin.query("embedding compression", [r for r in results if r], top_k
 print(matches)
 ```
 
+### Framework and Serving Adapters
+
+```python
+from turboquant.integrations.plugins import (
+    TurboQuantDocumentStore,
+    TurboQuantDocumentEmbedder,
+    TurboQuantEmbedding,
+    TurboQuantEmbeddings,
+    TurboQuantTGIAdapter,
+    patch_vllm_with_turboquant,
+)
+from turboquant.integrations.huggingface import apply_turboquant_to_hf_model
+```
+
+Use these surfaces for:
+
+- `TurboQuantEmbeddings` with LangChain vector stores
+- `TurboQuantEmbedding` with LlamaIndex
+- `TurboQuantDocumentStore` and `TurboQuantDocumentEmbedder` with Haystack
+- `patch_vllm_with_turboquant()` for VLLM engine helpers
+- `TurboQuantTGIAdapter` for TGI KV-cache hooks
+- `apply_turboquant_to_hf_model()` for Hugging Face attention wrappers
+
 ## CLI Usage
 
 ```bash
@@ -135,7 +158,7 @@ Real local validation was run on March 27, 2026 against the Ollama instance on t
 Using `num_bits=4` and `qjl_dim=64`:
 
 - `nomic-embed-text:latest`: `dim=768`, `compression_ratio=12.76%`, `compression_factor=7.84x`, `mse=0.00137484`, `correlation=0.9999999943`
-- `llama3:latest`: `dim=4096`, `compression_factor=7.97x`, `correlation=0.9999029384`
+- `llama3:latest`: `dim=4096`, `compression_ratio=12.55%`, `compression_factor=7.97x`, `mse=271.734619`, `correlation=0.9999995254`
 
 ### End-To-End Benchmark
 
@@ -143,6 +166,7 @@ Command:
 
 ```bash
 python integrations/ollama_test.py --model nomic-embed-text:latest --qjl 64 --sq 4
+python integrations/ollama_test.py --url http://127.0.0.1:11434 --model llama3:latest --qjl 64 --sq 4
 ```
 
 Measured output:
@@ -157,6 +181,26 @@ Measured output:
 - Attention cosine similarity: `0.999992`
 - Top-3 agreement: `83.33%`
 
+### `llama3:latest` Benchmark
+
+- Compression: `12.55%` of FP32 storage (`8.0x smaller`)
+- Bits per dim: `4.02`
+- Correlation: `0.995912`
+- Mean squared error: `136294.0625`
+- Mean absolute error: `299.779114`
+- Max absolute error: `873.741211`
+- Attention MSE: `0.00000000`
+- Attention cosine similarity: `1.000000`
+- Top-3 agreement: `100.00%`
+
+### `llama3:latest` Memory Accounting
+
+| Baseline | Original | Compressed | Effective Factor |
+|----------|----------|------------|------------------|
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
+| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+
 ### Query Smoke Test
 
 With the query `"embedding compression methods"`, the compressed retrieval flow ranked `"vector compression for embeddings"` as the top result.
@@ -165,6 +209,7 @@ With the query `"embedding compression methods"`, the compressed retrieval flow 
 
 The plugin benchmark compares compressed embeddings against FP32 storage.
 Core SDK and dashboard compression factors use an FP16 baseline for KV-cache-style reporting.
+The current Python runtime stores low-bit indices in byte tensors, so observed in-memory savings are lower than the packed theoretical target until bit-packing is added.
 
 ## Configuration
 
