@@ -35,7 +35,17 @@ jobs:
       run: ruff check .
 
     - name: Type check with mypy
-      run: mypy --ignore-missing-imports turboquant/
+      run: |
+        # Run mypy on the turboquant package
+        if [ -d "turboquant" ]; then
+          mypy --ignore-missing-imports turboquant/
+        elif [ -d "turboquant-app/turboquant" ]; then
+          cd turboquant-app
+          mypy --ignore-missing-imports turboquant/
+        else
+          echo "Error: turboquant package not found"
+          exit 1
+        fi
 
     - name: Run tests
       run: pytest -q
