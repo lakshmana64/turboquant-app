@@ -8,22 +8,28 @@ Installation:
 
 Usage:
     from turboquant.integrations.plugins.langchain import TurboQuantEmbeddings
-    
+
     # Use as embedding model
     embeddings = TurboQuantEmbeddings(
         base_embeddings=HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2"),
         num_bits=4,
         qjl_dim=64
     )
-    
+
     # Create vector store with compressed embeddings
     vectorstore = FAISS.from_documents(documents, embeddings)
 """
 
 import torch
-from typing import List, Optional, Any
+from typing import List, Optional, Any, TYPE_CHECKING
 
 from turboquant.core.codec import TurboQuantConfig
+
+if TYPE_CHECKING:
+    from langchain_core.embeddings import Embeddings
+    from langchain_core.documents import Document
+    from langchain_community.vectorstores import FAISS
+    from langchain_community.embeddings import HuggingFaceEmbeddings
 
 try:
     from langchain_core.embeddings import Embeddings
@@ -33,7 +39,7 @@ try:
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
-    Embeddings = object
+    Embeddings = object  # type: ignore
 
 
 class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):

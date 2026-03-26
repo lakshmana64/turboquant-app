@@ -8,14 +8,14 @@ Installation:
 
 Usage:
     from turboquant.integrations.plugins.llama_index import TurboQuantEmbedding
-    
+
     # Use as embedding model
     embed_model = TurboQuantEmbedding(
         base_model="BAAI/bge-small-en-v1.5",
         num_bits=4,
         qjl_dim=64
     )
-    
+
     # Create index with compressed embeddings
     index = VectorStoreIndex.from_documents(
         documents,
@@ -24,9 +24,13 @@ Usage:
 """
 
 import torch
-from typing import List, Optional, Any
+from typing import List, Optional, Any, TYPE_CHECKING
 
 from turboquant.core.codec import TurboQuantConfig
+
+if TYPE_CHECKING:
+    from llama_index.core.embeddings import BaseEmbedding
+    from llama_index.core import VectorStoreIndex, Document
 
 try:
     from llama_index.core.embeddings import BaseEmbedding
@@ -34,7 +38,7 @@ try:
     LLAMAINDEX_AVAILABLE = True
 except ImportError:
     LLAMAINDEX_AVAILABLE = False
-    BaseEmbedding = object
+    BaseEmbedding = object  # type: ignore
 
 
 class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
@@ -249,20 +253,20 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
 class TurboQuantVectorStore:
     """
     Wrapper for LlamaIndex vector stores with TurboQuant compression.
-    
+
     Usage:
         from turboquant.integrations.plugins.llama_index import TurboQuantVectorStore
-        
+
         # Wrap existing index
         compressed_store = TurboQuantVectorStore(index)
-        
+
         # Query with compression
         results = compressed_store.query("Your query", top_k=5)
     """
-    
+
     def __init__(
         self,
-        index: VectorStoreIndex,
+        index: "VectorStoreIndex",
         num_bits: int = 4,
         qjl_dim: int = 64,
         device: Optional[str] = None
