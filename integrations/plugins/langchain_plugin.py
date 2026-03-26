@@ -257,7 +257,7 @@ class TurboQuantFAISS:
     
     def __init__(
         self,
-        vectorstore: FAISS,
+        vectorstore: "FAISS",
         num_bits: int = 4,
         qjl_dim: int = 64,
         device: Optional[str] = None
@@ -449,16 +449,16 @@ class TurboQuantFAISS:
 
 
 def create_compressed_vectorstore(
-    documents: List[Document],
+    documents: List["Document"],
     model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
     num_bits: int = 4,
     qjl_dim: int = 64,
     device: Optional[str] = None,
     **kwargs
-) -> FAISS:
+) -> "FAISS":
     """
     Create a LangChain vector store with TurboQuant compression.
-    
+
     Args:
         documents: List of documents
         model_name: Embedding model name
@@ -466,7 +466,7 @@ def create_compressed_vectorstore(
         qjl_dim: QJL output dimension
         device: Target device
         **kwargs: Additional arguments
-        
+
     Returns:
         FAISS vector store with compressed embeddings
     """

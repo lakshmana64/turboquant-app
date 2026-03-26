@@ -385,12 +385,12 @@ class TurboQuantVectorStore:
 
 
 def create_compressed_index(
-    documents: List[Document],
+    documents: List["Document"],
     num_bits: int = 4,
     qjl_dim: int = 64,
     device: Optional[str] = None,
     **kwargs
-) -> VectorStoreIndex:
+) -> "VectorStoreIndex":
     """
     Create a LlamaIndex index with TurboQuant compression.
     
