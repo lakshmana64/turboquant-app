@@ -277,7 +277,8 @@ class TestEstimator:
         codec = TurboQuantCodec(dim, config=config, device=device)
         encoded = codec.encode_keys_batch(keys)
         
-        estimator = UnbiasedInnerProductEstimator(dim, output_dim=64, seed=42, device=device)
+        # Estimate using codec directly (estimator variable kept for future use)
+        _ = UnbiasedInnerProductEstimator(dim, output_dim=64, seed=42, device=device)  # noqa: F841
         
         # Estimate
         estimates = codec.estimate_inner_products(queries[0], encoded)

@@ -31,11 +31,11 @@ def run_accuracy_benchmark():
                 # 1. TurboQuant
                 config = TurboQuantConfig(num_bits=sq_bits, qjl_dim=qjl_dim)
                 codec = TurboQuantCodec(d, config=config)
-                
+
                 start = time.time()
                 encoded = codec.encode_keys_batch(keys)
                 estimates = codec.estimate_inner_products(queries, encoded)
-                tq_time = time.time() - start
+                _ = time.time() - start  # noqa: F841 (timing for future use)
                 
                 tq_mse = torch.mean((true_dots - estimates)**2).item()
                 

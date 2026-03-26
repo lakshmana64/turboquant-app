@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from integrations import *  # type: ignore[F401,F403]
+# ruff: noqa: F401, F403
+from integrations import *
 from integrations import __all__ as _integrations_all
 
 from turboquant._alias import alias_submodules

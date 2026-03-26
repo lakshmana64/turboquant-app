@@ -29,10 +29,8 @@ from typing import List, Optional, Any
 from turboquant.core.codec import TurboQuantConfig
 
 try:
-    from llama_index.core.node_parser import TextSplitter
     from llama_index.core.embeddings import BaseEmbedding
     from llama_index.core import VectorStoreIndex, Document
-    from llama_index.core.schema import BaseNode
     LLAMAINDEX_AVAILABLE = True
 except ImportError:
     LLAMAINDEX_AVAILABLE = False

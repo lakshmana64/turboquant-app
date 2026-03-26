@@ -139,8 +139,8 @@ def example_with_config():
         print(f"Config: {config.to_dict()}")
         
         # Compress with caching
-        result1 = plugin.compress("Test prompt")
-        result2 = plugin.compress("Test prompt")  # From cache
+        _ = plugin.compress("Test prompt")  # noqa: F841
+        _ = plugin.compress("Test prompt")  # From cache, noqa: F841
         
         print("\nFirst compression: computed")
         print("Second compression: from cache")
@@ -201,8 +201,8 @@ def example_caching():
     # Compress same prompt twice
     print("Compressing 'Hello world' twice...")
     
-    result1 = plugin.compress("Hello world")
-    result2 = plugin.compress("Hello world")
+    _ = plugin.compress("Hello world")  # noqa: F841
+    _ = plugin.compress("Hello world")  # From cache, noqa: F841
     
     print("First call: fetched from Ollama")
     print("Second call: served from cache")

@@ -215,7 +215,7 @@ def benchmark_needle_in_haystack(
         
         # True scores
         true_scores = (query @ keys.T) * scale
-        true_rank = (true_scores >= true_scores[needle_idx]).sum().item()
+        _ = (true_scores >= true_scores[needle_idx]).sum().item()  # noqa: F841 (for future analysis)
         
         # Compressed
         encoded_keys = codec.encode_keys_batch(keys)
