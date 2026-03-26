@@ -47,7 +47,7 @@ jobs:
     - name: Run tests
       run: pytest -q
 
-  # Optional: Type checking (runs separately, doesn't block)
+  # Optional: Type checking ( informational only)
   type-check:
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -59,10 +59,11 @@ jobs:
         python-version: "3.11"
     - name: Install dependencies
       run: |
-        pip install mypy types-requests types-PyYAML
-    - name: Type check
+        pip install mypy types-requests types-PyYAML || true
+    - name: Type check (non-blocking)
       run: |
-        mypy --ignore-missing-imports turboquant/ || echo "Type check failed (non-blocking)"
+        mypy --ignore-missing-imports turboquant/ 2>&1 || echo "::warning::Type check failed (non-blocking)"
+        exit 0
 
   publish-check:
     needs: test
