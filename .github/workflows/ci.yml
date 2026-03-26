@@ -37,8 +37,8 @@ jobs:
 
     - name: Install optional plugins (best effort)
       run: |
-        pip install sentence-transformers || echo "Warning: sentence-transformers installation failed, skipping plugins"
-        pip install -e .[plugins] || echo "Warning: plugins installation failed, continuing without"
+        pip install sentence-transformers || true
+        pip install -e .[plugins] || true
       continue-on-error: true
 
     - name: Lint with ruff
@@ -46,16 +46,9 @@ jobs:
 
     - name: Type check with mypy
       run: |
-        # Run mypy on the turboquant package
-        if [ -d "turboquant" ]; then
-          mypy --ignore-missing-imports turboquant/
-        elif [ -d "turboquant-app/turboquant" ]; then
-          cd turboquant-app
-          mypy --ignore-missing-imports turboquant/
-        else
-          echo "Error: turboquant package not found"
-          exit 1
-        fi
+        # Navigate to the package directory and run mypy
+        cd $(dirname $(find . -name "setup.py" -type f | head -1))
+        mypy --ignore-missing-imports turboquant/
 
     - name: Run tests
       run: pytest -q
