@@ -234,15 +234,23 @@ The core SDK and dashboard use an FP16 baseline for KV-cache-style reporting. Th
 TurboQuant provides a unified CLI for quantization and benchmarking.
 
 ```bash
+# NEW: Run the interactive hardware setup wizard
+turboquant setup
+
 # Run a memory and accuracy benchmark (8x savings vs FP32)
 turboquant benchmark --num_keys 1000 --dim 4096 --sq_bits 4
-
-# Quantize a tensor with bit-packing
-turboquant quantize input.pt --output encoded.pt --sq_bits 4 --qjl_bits 64
-
-# Estimate inner products using encoded data
-turboquant estimate --query query.pt --encoded encoded.pt
 ```
+
+## Docker Deployment
+
+Deploy the high-performance API and Dashboard in seconds:
+
+```bash
+docker-compose up --build
+```
+
+- **FastAPI Service**: `http://localhost:8000`
+- **Gradio Dashboard**: `http://localhost:7860`
 
 ## Validation Commands
 

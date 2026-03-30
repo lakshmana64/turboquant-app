@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-30
+
+### Added
+- **Production API**: High-performance FastAPI microservice (`service.py`).
+- **Containerization**: Official Docker and Docker Compose support for one-click deployment.
+- **Smart Setup**: Interactive CLI hardware wizard (`turboquant setup`) for environment optimization.
+- **Triton Acceleration**: Fused GPU kernels for single-pass quantization and packing.
+- **Value Quantization**: Specialized unbiased codec for KV-cache 'Value' vectors.
+- **Adaptive Bit-Rate**: Importance-aware quantization logic for higher accuracy.
+- **TS Parity**: High-speed bit-packing for the TypeScript reference port.
+
+### Changed
+- **CLI**: Re-organized command structure with new `setup` and `benchmark` verbs.
+- **Documentation**: Expanded README with production deployment guides and value propositions.
+
 ## [1.0.1] - 2026-03-30
 
 ### Added
