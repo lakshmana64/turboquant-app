@@ -199,7 +199,22 @@ For the query `"embedding compression methods"`, the top compressed retrieval re
 
 The Ollama plugin and `integrations/ollama_test.py` report compression relative to FP32 embedding storage.
 
-The core SDK and dashboard use an FP16 baseline for KV-cache-style reporting. In addition, the current Python runtime stores low-bit indices in byte tensors, so the observed in-memory savings are lower than the theoretical packed bit-budget until bit-packing is added.
+The core SDK and dashboard use an FP16 baseline for KV-cache-style reporting. The Python runtime implements full bit-packing for low-bit indices, matching the theoretical bit-budget.
+
+## CLI Usage
+
+TurboQuant provides a unified CLI for quantization and benchmarking.
+
+```bash
+# Run a memory and accuracy benchmark (8x savings vs FP32)
+turboquant benchmark --num_keys 1000 --dim 4096 --sq_bits 4
+
+# Quantize a tensor with bit-packing
+turboquant quantize input.pt --output encoded.pt --sq_bits 4 --qjl_bits 64
+
+# Estimate inner products using encoded data
+turboquant estimate --query query.pt --encoded encoded.pt
+```
 
 ## Validation Commands
 
