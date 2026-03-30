@@ -14,6 +14,7 @@ from typing import Dict, Any, Optional
 from .scalar_quant import quantize_scalar, dequantize_scalar, _generate_rotation_matrix
 from .estimator import UnbiasedInnerProductEstimator
 from .bit_packing import pack_bits, unpack_bits, pack_signs, unpack_signs
+from .wht import apply_random_wht
 
 
 class EncodedKey(Dict[str, Any]):
@@ -27,10 +28,17 @@ def create_codec(
     qjl_dim: int = 64,
     seed: int = 42,
     device: Optional[torch.device] = None,
-    pack_bits: bool = True
+    pack_bits: bool = True,
+    rotation_type: str = "hadamard"
 ) -> 'TurboQuantCodec':
     """Factory function for TurboQuantCodec."""
-    config = TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, seed=seed, pack_bits=pack_bits)
+    config = TurboQuantConfig(
+        num_bits=num_bits, 
+        qjl_dim=qjl_dim, 
+        seed=seed, 
+        pack_bits=pack_bits,
+        rotation_type=rotation_type
+    )
     return TurboQuantCodec(dim, config=config, device=device)
 
 
@@ -43,7 +51,8 @@ class TurboQuantConfig:
         seed: int = 42,
         rotation_seed: Optional[int] = None,
         dtype: torch.dtype = torch.float32,
-        pack_bits: bool = True
+        pack_bits: bool = True,
+        rotation_type: str = "hadamard" # "random" or "hadamard"
     ):
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
@@ -51,14 +60,12 @@ class TurboQuantConfig:
         self.rotation_seed = seed if rotation_seed is None else rotation_seed
         self.dtype = dtype
         self.pack_bits = pack_bits
+        self.rotation_type = rotation_type
 
 
 class TurboQuantCodec:
     """
     Unified Codec for TurboQuant quantization.
-    
-    Handles both Stage 1 (SQ) and Stage 2 (QJL) and provides 
-    utilities for attention mechanism integration.
     """
     
     def __init__(
@@ -72,19 +79,18 @@ class TurboQuantCodec:
         self.device = device if device else torch.device('cpu')
         
         # Initialize components
-        self.rotation_matrix = _generate_rotation_matrix(dim, config.seed, self.device)
+        if config.rotation_type == "random":
+            self.rotation_matrix = _generate_rotation_matrix(dim, config.seed, self.device)
+        else:
+            self.rotation_matrix = None # WHT is computed on-the-fly, saves memory!
+            
         self.estimator = UnbiasedInnerProductEstimator(
             dim, config.qjl_dim, config.seed, self.device
         )
 
     @property
     def compression_ratio(self) -> float:
-        """
-        Return compressed size / original size.
-
-        A smaller value is better. For example, ``0.25`` means the
-        representation uses 25% of the original FP16 storage.
-        """
+        """Return compressed size / original size."""
         compressed_bits = self.config.num_bits * self.dim + self.config.qjl_dim
         original_bits = 16 * self.dim
         return compressed_bits / original_bits
@@ -101,12 +107,18 @@ class TurboQuantCodec:
             
         # Stage 1
         indices, scales, norms, _ = quantize_scalar(
-            x, self.config.num_bits, rotation_matrix=self.rotation_matrix
+            x, self.config.num_bits, 
+            rotation_matrix=self.rotation_matrix,
+            rotation_type=self.config.rotation_type,
+            rotation_seed=self.config.rotation_seed
         )
         
         # Recon for residual
         x_hat = dequantize_scalar(
-            indices, scales, self.config.num_bits, rotation_matrix=self.rotation_matrix
+            indices, scales, self.config.num_bits, 
+            rotation_matrix=self.rotation_matrix,
+            rotation_type=self.config.rotation_type,
+            rotation_seed=self.config.rotation_seed
         )
         
         # Stage 2
@@ -122,13 +134,10 @@ class TurboQuantCodec:
             'scales': scales,
             'r_signs': r_signs,
             'r_norm': r_norm,
-            # We don't store x_hat in the packed format to save memory
-            # It will be reconstructed during estimation if needed
             'x_hat': x_hat if not self.config.pack_bits else None
         })
 
     def encode_keys_batch(self, x: Tensor) -> EncodedKey:
-        """Alias for encode_key."""
         return self.encode_key(x)
 
     def decode_key(self, encoded: Dict[str, Any]) -> Tensor:
@@ -141,25 +150,19 @@ class TurboQuantCodec:
             indices, 
             encoded['scales'], 
             self.config.num_bits, 
-            rotation_matrix=self.rotation_matrix
+            rotation_matrix=self.rotation_matrix,
+            rotation_type=self.config.rotation_type,
+            rotation_seed=self.config.rotation_seed
         )
 
     def decode_keys(self, encoded: Dict[str, Any]) -> Tensor:
-        """Alias for decode_key."""
         return self.decode_key(encoded)
 
     def estimate_inner_products(self, q: Tensor, encoded: Dict[str, Any]) -> Tensor:
         """
         Estimate inner products between query q and batch of encoded keys.
-        
-        Args:
-            q: Query vector (dim,) or (n_q, dim)
-            encoded: Dictionary from encode_key
-            
-        Returns:
-            Inner product estimates (n_keys,) or (n_q, n_keys)
         """
-        # Handle packed data if needed
+        # 1. Handle packed data and reconstruction
         x_hat = encoded.get('x_hat')
         r_signs = encoded['r_signs']
         
@@ -167,66 +170,34 @@ class TurboQuantCodec:
             # Data was packed, reconstruct Stage 1 and Stage 2
             x_hat = self.decode_key(encoded)
             r_signs = unpack_signs(r_signs, self.config.qjl_dim)
-            
+        
+        # 2. Estimate
         if q.dim() == 1:
-            # Single query vs batch of keys
             return self.estimator.estimate_batch(
-                q.unsqueeze(0),
-                x_hat,
-                r_signs,
-                encoded['r_norm']
+                q.unsqueeze(0), x_hat, r_signs, encoded['r_norm']
             ).squeeze(0)
         else:
-            # Batch queries vs batch keys
             return self.estimator.estimate_batch(
-                q,
-                x_hat,
-                r_signs,
-                encoded['r_norm']
+                q, x_hat, r_signs, encoded['r_norm']
             )
 
-    def compute_attention_scores(
-        self, 
-        q: Tensor, 
-        encoded: Dict[str, Any], 
-        scale: float = 1.0
-    ) -> Tensor:
-        """
-        Compute attention scores: softmax(estimate_inner_products * scale).
-        """
+    def compute_attention_scores(self, q: Tensor, encoded: Dict[str, Any], scale: float = 1.0) -> Tensor:
         dots = self.estimate_inner_products(q, encoded)
         return dots * scale
 
     def get_memory_usage(self, num_keys: int) -> Dict[str, float]:
         """Estimate memory usage in bytes."""
-        # Baseline (FP16)
         original = num_keys * self.dim * 2
-        
-        # Compressed
         if self.config.pack_bits:
-            # indices: bits / 8 bytes per dimension
             indices_bytes = num_keys * math.ceil(self.dim * self.config.num_bits / 8)
-            # r_signs: 1 bit per qjl_dim
             r_signs_bytes = num_keys * math.ceil(self.config.qjl_dim / 8)
         else:
-            # indices: uint8 (if num_bits <= 8)
             indices_bytes = num_keys * self.dim * (1 if self.config.num_bits <= 8 else 2)
-            # r_signs: float32 (before packing)
             r_signs_bytes = num_keys * self.config.qjl_dim * 4
             
-        # scales: float32
         scales_bytes = num_keys * 4
-        # r_norm: float32
         r_norm_bytes = num_keys * 4
-        
-        # x_hat overhead (if not packed)
         x_hat_bytes = num_keys * self.dim * 4 if not self.config.pack_bits else 0
-        
         compressed = indices_bytes + scales_bytes + r_signs_bytes + r_norm_bytes + x_hat_bytes
         
-        return {
-            'original': original,
-            'compressed': compressed,
-            'ratio': compressed / original,
-            'factor': original / compressed
-        }
+        return {'original': original, 'compressed': compressed, 'ratio': compressed / original, 'factor': original / compressed}
