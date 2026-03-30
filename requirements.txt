@@ -5,3 +5,7 @@ pyyaml
 gradio>=6.0.0
 plotly>=5.0.0
 pytest
+fastapi
+uvicorn
+pydantic
+triton>=2.1.0; platform_system == 'Linux'

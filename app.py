@@ -12,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 from turboquant.sdk.optimize import TurboQuantizer
+from core.adaptive import adaptive_quantize
 
 # --- Helper Functions ---
 
@@ -23,7 +24,7 @@ def get_ollama_models():
     except Exception:
         return ["No Ollama instance found"]
 
-def run_quantization_demo(model_name, sq_bits, qjl_bits, prompt):
+def run_quantization_demo(model_name, sq_bits, qjl_bits, prompt, adaptive_mode):
     """Run a live quantization test for a single prompt."""
     if model_name == "No Ollama instance found":
         return "Please start Ollama to run this demo.", None, "<div style='text-align: center;'>Waiting for Ollama</div>"
@@ -44,11 +45,24 @@ def run_quantization_demo(model_name, sq_bits, qjl_bits, prompt):
     
     # 3. Quantize
     quantizer = TurboQuantizer(d, qjl_bits=int(qjl_bits), sq_bits=int(sq_bits))
-    encoded = quantizer.encode(x)
     
-    # 4. Estimate
+    if adaptive_mode:
+        # High bits = 8, Low bits = sq_bits
+        x_hat, importance, _ = adaptive_quantize(x, low_bits=int(sq_bits), high_bits=8, rotation_matrix=quantizer.codec.rotation_matrix)
+        # Manually compute Stage 2 for adaptive
+        residual = x - x_hat
+        _, r_signs, r_norm = quantizer.codec.estimator.encode_key(x, x_hat)
+        est_dot = quantizer.codec.estimator.estimate(q.squeeze(0), x_hat.squeeze(0), r_signs[0], r_norm[0]).item()
+        
+        importance_pct = importance.float().mean().item() * 100
+        stats_prefix = f"### ✨ Adaptive Mode Active\n- **Important Dims (8-bit)**: {importance_pct:.1f}%\n"
+    else:
+        encoded = quantizer.encode(x)
+        est_dot = quantizer.estimate(q.squeeze(0), encoded).item()
+        stats_prefix = ""
+    
+    # 4. Estimation Accuracy
     true_dot = (q * x).sum().item()
-    est_dot = quantizer.estimate(q.squeeze(0), encoded).item()
     
     # 5. Build Visualization
     # Feature distribution chart
@@ -63,9 +77,10 @@ def run_quantization_demo(model_name, sq_bits, qjl_bits, prompt):
     delta = abs(true_dot - est_dot)
     
     stats_md = f"""
+    {stats_prefix}
     ### 📊 Benchmark Results
     - **Original Dimension**: {d}
-    - **Bits Per Dim**: {sq_bits + (qjl_bits/d):.2f}
+    - **Avg Bits Per Dim**: {sq_bits + (qjl_bits/d):.2f}
     - **Compression Factor**: **{comp_ratio:.1f}x**
     - **True Inner Product**: {true_dot:.4f}
     - **TurboQuant Estimate**: {est_dot:.4f}
@@ -113,6 +128,7 @@ with gr.Blocks() as demo:
                     model_dd = gr.Dropdown(choices=get_ollama_models(), label="Select Ollama Model", value=get_ollama_models()[0])
                     sq_slider = gr.Slider(minimum=1, maximum=8, step=1, value=2, label="Stage 1 Bits (Scalar)")
                     qjl_slider = gr.Slider(minimum=0, maximum=512, step=32, value=64, label="Stage 2 Bits (QJL Correction)")
+                    adaptive_mode = gr.Checkbox(label="Enable Adaptive Bit-Rate (ABR)", value=False)
                     text_input = gr.Textbox(placeholder="Enter prompt to embed...", label="Test Prompt", value="Quantum computing is transforming the future of cryptography.")
                     run_btn = gr.Button("Quantize & Benchmark", variant="primary")
                 
@@ -148,6 +164,10 @@ with gr.Blocks() as demo:
             2. **Stage 2 (QJL Residual Correction)**:
                Standard quantization is biased. TurboQuant computes the residual (error) and projects it using a 1-bit Quantized Johnson-Lindenstrauss (QJL) transform. This bit of extra info makes the final inner product estimate **unbiased**.
             
+            ### Advanced Optimizations
+            - **Adaptive Bit-Rate (ABR)**: Automatically uses higher precision (8-bit) for high-variance dimensions and lower precision (2-bit) for others.
+            - **Triton Kernels**: Fused GPU kernels for single-pass quantization and packing.
+            
             ### Why This Matters for LLMs
             KV caches grow linearly with context length. TurboQuant allows you to fit **8x-12x more tokens** into the same VRAM while maintaining the attention precision needed for complex reasoning.
             """)
@@ -155,7 +175,7 @@ with gr.Blocks() as demo:
     # Event handlers
     run_btn.click(
         run_quantization_demo, 
-        inputs=[model_dd, sq_slider, qjl_slider, text_input], 
+        inputs=[model_dd, sq_slider, qjl_slider, text_input, adaptive_mode], 
         outputs=[stats_output, dist_chart, ip_meter]
     )
     
