@@ -22,6 +22,7 @@ import math
 from .scalar_quant import _generate_rotation_matrix, get_codebook
 from .qjl_projection import QJLProjection
 from .codec import TurboQuantConfig
+from .bit_packing import pack_bits, unpack_bits, pack_signs, unpack_signs
 
 
 class QJLProjectionOptimized(QJLProjection):
@@ -208,18 +209,21 @@ class TurboQuantCodecOptimized:
     def encode_keys_batch_optimized(
         self,
         keys: Tensor,
-        return_x_hat: bool = True
+        return_x_hat: Optional[bool] = None
     ) -> Dict[str, Tensor]:
         """
         Memory-efficient batch encoding with optional outputs.
         
         Args:
             keys: Input tensor (n, d)
-            return_x_hat: Whether to return reconstructed keys
+            return_x_hat: Whether to return reconstructed keys (defaults to not self.config.pack_bits)
             
         Returns:
             Dict with encoded data
         """
+        if return_x_hat is None:
+            return_x_hat = not self.config.pack_bits
+            
         keys = keys.to(device=self.device, dtype=self.dtype)
         
         # Stage 1: Scalar quantization (optimized)
@@ -254,6 +258,11 @@ class TurboQuantCodecOptimized:
         residual = keys - x_hat
         r_signs, r_norms = self.qjl.project_and_quantize_fused(residual)
         
+        # Bit-packing
+        if self.config.pack_bits:
+            indices = pack_bits(indices, self.config.num_bits)
+            r_signs = pack_signs(r_signs)
+            
         # Build result
         result = {
             'indices': indices,      # (n, d)
@@ -292,9 +301,17 @@ class TurboQuantCodecOptimized:
         
         queries = queries.to(device=self.device, dtype=self.dtype)
         
+        # Unpack if needed
+        x_hat = encoded.get('x_hat')
+        r_signs = encoded['r_signs']
+        
+        if x_hat is None:
+            x_hat = self.decode_keys_vectorized(encoded)
+            r_signs = unpack_signs(r_signs, self.config.qjl_dim).to(device=self.device, dtype=self.dtype)
+            
         # Stage 1: Base inner products
         # (n_q, d) @ (n_k, d).T = (n_q, n_k)
-        base_dots = queries @ encoded['x_hat'].T
+        base_dots = queries @ x_hat.T
         
         # Stage 2: QJL correction (vectorized)
         # Project all queries at once
@@ -303,7 +320,7 @@ class TurboQuantCodecOptimized:
         # Batch correction for all pairs
         correction = self.qjl.estimate_inner_product_batch_optimized(
             q_projected,
-            encoded['r_signs'],  # (n_k, m)
+            r_signs,             # (n_k, m)
             encoded['r_norms']   # (n_k, 1)
         )
         
@@ -331,6 +348,10 @@ class TurboQuantCodecOptimized:
         indices = encoded['indices']
         scales = encoded['scales']
         
+        # Unpack indices if needed
+        if self.config.pack_bits:
+            indices = unpack_bits(indices, self.config.num_bits, self.dim).to(self.device)
+            
         # Lookup centroids (vectorized)
         x_quantized = self._centroids[indices]
         

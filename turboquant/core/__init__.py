@@ -20,6 +20,7 @@ alias_submodules(
         "residual": "core.residual",
         "scalar_quant": "core.scalar_quant",
         "streaming": "core.streaming",
+        "bit_packing": "core.bit_packing",
     },
 )
 

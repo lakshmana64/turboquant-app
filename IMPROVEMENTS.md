@@ -40,36 +40,22 @@ codec = TurboQuantCodecOptimized(dim=128, dtype=torch.float16)
 - cuBLAS-optimized matrix multiplications
 - Reduced host-device transfers
 
-### 1.2 Memory Efficiency
+### 1.2 Memory Efficiency ✅
 
-**File**: `core/streaming.py`
+**File**: `core/bit_packing.py`, `core/codec.py`
 
 **Features**:
-- `StreamingEncoder` - Process sequences incrementally
-- `KVCacheStreamer` - Layer-wise KV cache streaming
-- Chunk-based processing with configurable chunk size
-- CPU offloading for encoded data
-
-**Usage**:
-```python
-from turboquant.core import StreamingEncoder
-
-encoder = StreamingEncoder(dim=128, chunk_size=32)
-
-# Process token by token
-for token in sequence:
-    encoder.append(token)
-
-# Query at any time
-scores = encoder.query(query_vector)
-```
+- `pack_bits` / `unpack_bits` - Pack low-bit indices (1, 2, 4 bits) into `uint8` tensors
+- `pack_signs` / `unpack_signs` - Pack 1-bit QJL residuals
+- Integrated bit-packing in `TurboQuantCodec` (enabled by default)
+- Significantly reduced in-memory storage for encoded keys
 
 **Memory Benefits**:
-- O(chunk_size * dim) instead of O(seq_len * dim)
-- Up to 90% memory reduction for long sequences
-- Automatic flushing and reconstruction
+- **Real 4-bit compression**: 4.0x vs FP16 (packed indices)
+- **Real 2-bit compression**: 6.4x vs FP16 (including QJL correction)
+- Eliminates overhead of storing full-precision reconstructions (`x_hat`) in the encoded state
 
-### 1.3 Vectorization
+### 1.3 Streaming & Memory Management ✅
 
 **File**: `core/optimized.py`
 

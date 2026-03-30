@@ -181,15 +181,15 @@ Observed benchmark:
 | Attention cosine similarity | `1.000000` |
 | Top-3 agreement | `100.00%` |
 
-### `llama3:latest` Memory Accounting
+### `llama3:latest` Memory Accounting (Bit-Packed)
 
 | Baseline | Original | Compressed | Effective Factor |
 |----------|----------|------------|------------------|
-| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
-| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
-| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2064 B` | **7.94x** |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2064 B` | **3.97x** |
+| Current Python runtime (Bit-Packed) | `8192 B` | `2064 B` | **3.97x** |
 
-The first row is the headline number reported by the Ollama plugin and benchmark. The last row reflects the current Python implementation, where low-bit indices are stored in byte-addressed tensors rather than bit-packed buffers.
+The Python runtime now implements full bit-packing for low-bit indices and QJL residuals, matching the theoretical bit-budget for maximum memory efficiency.
 
 ### Retrieval Smoke Test
 

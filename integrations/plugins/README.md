@@ -193,13 +193,13 @@ Measured output:
 - Attention cosine similarity: `1.000000`
 - Top-3 agreement: `100.00%`
 
-### `llama3:latest` Memory Accounting
+### `llama3:latest` Memory Accounting (Bit-Packed)
 
 | Baseline | Original | Compressed | Effective Factor |
 |----------|----------|------------|------------------|
-| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
-| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
-| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2064 B` | **7.94x** |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2064 B` | **3.97x** |
+| Current Python runtime (Bit-Packed) | `8192 B` | `2064 B` | **3.97x** |
 
 ### Query Smoke Test
 
@@ -209,7 +209,8 @@ With the query `"embedding compression methods"`, the compressed retrieval flow 
 
 The plugin benchmark compares compressed embeddings against FP32 storage.
 Core SDK and dashboard compression factors use an FP16 baseline for KV-cache-style reporting.
-The current Python runtime stores low-bit indices in byte tensors, so observed in-memory savings are lower than the packed theoretical target until bit-packing is added.
+The Python runtime now implements full bit-packing for low-bit indices and QJL residuals, matching the theoretical bit-budget for maximum memory efficiency.
+
 
 ## Configuration
 

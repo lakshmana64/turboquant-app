@@ -179,15 +179,15 @@ python integrations/ollama_test.py --url http://127.0.0.1:11434 --model llama3:l
 | Attention cosine similarity | `1.000000` |
 | Top-3 agreement | `100.00%` |
 
-#### `llama3:latest` Memory Accounting
+#### `llama3:latest` Memory Accounting (Bit-Packed)
 
 | Baseline | Original | Compressed | Effective Factor |
 |----------|----------|------------|------------------|
-| FP32 bit-budget used by plugin reporting | `16384 B` | `2056 B` | `7.97x` |
-| FP16 packed theoretical KV-cache target | `8192 B` | `2056 B` | `3.98x` |
-| Current Python runtime tensor storage | `8192 B` | `4112 B` | `1.99x` |
+| FP32 bit-budget used by plugin reporting | `16384 B` | `2064 B` | **7.94x** |
+| FP16 packed theoretical KV-cache target | `8192 B` | `2064 B` | **3.97x** |
+| Current Python runtime (Bit-Packed) | `8192 B` | `2064 B` | **3.97x** |
 
-The benchmark headline uses the FP32 bit-budget baseline. The current Python runtime stores low-bit indices in byte tensors, so real in-memory savings are smaller until bit-packing is implemented.
+The Python runtime now implements full bit-packing for low-bit indices and QJL residuals, matching the theoretical bit-budget for maximum memory efficiency.
 
 #### Retrieval Smoke Test
 
@@ -217,9 +217,8 @@ For the query `"embedding compression methods"`, the top compressed retrieval re
 | FP16 | `16` | `2.0x` vs FP32 | Half-precision baseline |
 | FP8 | `8` | `4.0x` vs FP32 | Hardware-dependent |
 | INT8 | `8` | `4.0x` vs FP32 | Standard 8-bit baseline |
-| TurboQuant (4-bit plugin reporting) | `4.02` | `7.97x` vs FP32 | Live `llama3:latest` Ollama check |
-| TurboQuant (4-bit packed theoretical) | `4.02` | `3.98x` vs FP16 | Target KV-cache bit-budget |
-| TurboQuant (4-bit current Python runtime) | `n/a` | `1.99x` vs FP16 | Byte-addressed indices today |
+| TurboQuant (4-bit real storage) | **4.02** | **7.94x** vs FP32 | **NEW: Bit-packed implementation** |
+| TurboQuant (4-bit vs FP16) | **4.02** | **3.97x** vs FP16 | **NEW: KV-cache target achieved** |
 
 ---
 

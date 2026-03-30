@@ -116,7 +116,8 @@ def demo_semantic_search(model: str = "llama3", bits: int = 4, qjl_dim: int = 64
     
     # Initialize codec
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    codec = TurboQuantCodecOptimized(dim=dim, num_bits=bits, qjl_dim=qjl_dim, device=device)
+    from turboquant.core.optimized import create_optimized_codec
+    codec = create_optimized_codec(dim=dim, num_bits=bits, qjl_dim=qjl_dim, device=device)
     
     # Compress
     print(f"\nCompressing with TurboQuant ({bits}-bit + {qjl_dim}-bit QJL)...")
@@ -208,7 +209,8 @@ def demo_code_search(model: str = "llama3", bits: int = 4, qjl_dim: int = 64):
     
     # Initialize codec
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    codec = TurboQuantCodecOptimized(dim=dim, num_bits=bits, qjl_dim=qjl_dim, device=device)
+    from turboquant.core.optimized import create_optimized_codec
+    codec = create_optimized_codec(dim=dim, num_bits=bits, qjl_dim=qjl_dim, device=device)
     
     # Compress
     embed_tensor = torch.stack(embeddings).to(device)
@@ -260,7 +262,8 @@ def demo_attention_simulation(seq_len: int = 64, bits: int = 4, qjl_dim: int = 6
     keys = torch.randn(seq_len, d_model, device=device)
     
     # Initialize codec
-    codec = TurboQuantCodecOptimized(dim=d_model, num_bits=bits, qjl_dim=qjl_dim, device=device)
+    from turboquant.core.optimized import create_optimized_codec
+    codec = create_optimized_codec(dim=d_model, num_bits=bits, qjl_dim=qjl_dim, device=device)
     
     # True attention
     scale = 1.0 / (d_model ** 0.5)

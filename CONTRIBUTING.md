@@ -37,6 +37,7 @@ Ensure your code follows our standards:
 Before submitting, ensure all tests pass:
 ```bash
 pytest test.py
+pytest test_bit_packing.py
 ```
 
 ### 4. Linting and Formatting

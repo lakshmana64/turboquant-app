@@ -13,7 +13,15 @@ Modules:
   - monitoring: Metrics and logging
   - aoti: AOTInductor compilation and export
   - distributed: Multi-GPU support
+  - bit_packing: Bit-packing utilities for low-bit indices
 """
+
+from .bit_packing import (
+    pack_bits,
+    unpack_bits,
+    pack_signs,
+    unpack_signs
+)
 
 from .scalar_quant import (
     quantize_scalar,
@@ -154,4 +162,10 @@ __all__ = [
     # Distributed (Phase 3)
     'DistributedStreamingEncoder',
     'DistributedKVCacheStreamer',
+    
+    # Bit-packing
+    'pack_bits',
+    'unpack_bits',
+    'pack_signs',
+    'unpack_signs',
 ]

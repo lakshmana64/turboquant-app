@@ -7,11 +7,13 @@ inner products in transformer KV caches.
 """
 
 import torch
+import math
 from torch import Tensor
 from typing import Dict, Any, Optional
 
 from .scalar_quant import quantize_scalar, dequantize_scalar, _generate_rotation_matrix
 from .estimator import UnbiasedInnerProductEstimator
+from .bit_packing import pack_bits, unpack_bits, pack_signs, unpack_signs
 
 
 class EncodedKey(Dict[str, Any]):
@@ -24,10 +26,11 @@ def create_codec(
     num_bits: int = 2,
     qjl_dim: int = 64,
     seed: int = 42,
-    device: Optional[torch.device] = None
+    device: Optional[torch.device] = None,
+    pack_bits: bool = True
 ) -> 'TurboQuantCodec':
     """Factory function for TurboQuantCodec."""
-    config = TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, seed=seed)
+    config = TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, seed=seed, pack_bits=pack_bits)
     return TurboQuantCodec(dim, config=config, device=device)
 
 
@@ -39,13 +42,15 @@ class TurboQuantConfig:
         qjl_dim: int = 64,
         seed: int = 42,
         rotation_seed: Optional[int] = None,
-        dtype: torch.dtype = torch.float32
+        dtype: torch.dtype = torch.float32,
+        pack_bits: bool = True
     ):
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
         self.seed = seed
         self.rotation_seed = seed if rotation_seed is None else rotation_seed
         self.dtype = dtype
+        self.pack_bits = pack_bits
 
 
 class TurboQuantCodec:
@@ -107,12 +112,19 @@ class TurboQuantCodec:
         # Stage 2
         _, r_signs, r_norm = self.estimator.encode_key(x, x_hat)
         
+        # Bit-packing
+        if self.config.pack_bits:
+            indices = pack_bits(indices, self.config.num_bits)
+            r_signs = pack_signs(r_signs)
+            
         return EncodedKey({
             'indices': indices,
             'scales': scales,
             'r_signs': r_signs,
             'r_norm': r_norm,
-            'x_hat': x_hat
+            # We don't store x_hat in the packed format to save memory
+            # It will be reconstructed during estimation if needed
+            'x_hat': x_hat if not self.config.pack_bits else None
         })
 
     def encode_keys_batch(self, x: Tensor) -> EncodedKey:
@@ -121,8 +133,12 @@ class TurboQuantCodec:
 
     def decode_key(self, encoded: Dict[str, Any]) -> Tensor:
         """Reconstruct the Stage 1 version (x_hat)."""
+        indices = encoded['indices']
+        if self.config.pack_bits:
+            indices = unpack_bits(indices, self.config.num_bits, self.dim)
+            
         return dequantize_scalar(
-            encoded['indices'], 
+            indices, 
             encoded['scales'], 
             self.config.num_bits, 
             rotation_matrix=self.rotation_matrix
@@ -143,20 +159,29 @@ class TurboQuantCodec:
         Returns:
             Inner product estimates (n_keys,) or (n_q, n_keys)
         """
+        # Handle packed data if needed
+        x_hat = encoded.get('x_hat')
+        r_signs = encoded['r_signs']
+        
+        if x_hat is None:
+            # Data was packed, reconstruct Stage 1 and Stage 2
+            x_hat = self.decode_key(encoded)
+            r_signs = unpack_signs(r_signs, self.config.qjl_dim)
+            
         if q.dim() == 1:
             # Single query vs batch of keys
             return self.estimator.estimate_batch(
                 q.unsqueeze(0),
-                encoded['x_hat'],
-                encoded['r_signs'],
+                x_hat,
+                r_signs,
                 encoded['r_norm']
             ).squeeze(0)
         else:
             # Batch queries vs batch keys
             return self.estimator.estimate_batch(
                 q,
-                encoded['x_hat'],
-                encoded['r_signs'],
+                x_hat,
+                r_signs,
                 encoded['r_norm']
             )
 
@@ -178,16 +203,26 @@ class TurboQuantCodec:
         original = num_keys * self.dim * 2
         
         # Compressed
-        # indices: uint8 (if num_bits <= 8)
-        indices_bytes = num_keys * self.dim * (1 if self.config.num_bits <= 8 else 2)
+        if self.config.pack_bits:
+            # indices: bits / 8 bytes per dimension
+            indices_bytes = num_keys * math.ceil(self.dim * self.config.num_bits / 8)
+            # r_signs: 1 bit per qjl_dim
+            r_signs_bytes = num_keys * math.ceil(self.config.qjl_dim / 8)
+        else:
+            # indices: uint8 (if num_bits <= 8)
+            indices_bytes = num_keys * self.dim * (1 if self.config.num_bits <= 8 else 2)
+            # r_signs: float32 (before packing)
+            r_signs_bytes = num_keys * self.config.qjl_dim * 4
+            
         # scales: float32
         scales_bytes = num_keys * 4
-        # r_signs: packed bits (m/8)
-        r_signs_bytes = num_keys * (self.config.qjl_dim / 8)
         # r_norm: float32
         r_norm_bytes = num_keys * 4
         
-        compressed = indices_bytes + scales_bytes + r_signs_bytes + r_norm_bytes
+        # x_hat overhead (if not packed)
+        x_hat_bytes = num_keys * self.dim * 4 if not self.config.pack_bits else 0
+        
+        compressed = indices_bytes + scales_bytes + r_signs_bytes + r_norm_bytes + x_hat_bytes
         
         return {
             'original': original,

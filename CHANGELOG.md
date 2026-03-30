@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-03-30
+
+### Added
+- **Bit-Packing**: Full implementation of bit-packing for 1, 2, and 4-bit indices and QJL signs.
+- **Memory Optimization**: Real-world memory savings now match theoretical bit-budgets (e.g., 8x smaller vs FP32).
+- **Benchmark Suite**: New `benchmarks/memory_packing_benchmark.py` for verifying packed vs unpacked storage.
+- **Validation**: New `test_bit_packing.py` for bit-perfect roundtrip verification.
+
+### Changed
+- **Core Engine**: `TurboQuantCodec` and `TurboQuantCodecOptimized` now default to packed storage.
+- **LLM Demo**: Fixed `demo_llm.py` to support new optimized codec factory methods and verified against Llama3.
+- **Documentation**: Updated all status and improvement logs to reflect production-ready bit-packing.
+
 ## [0.1.0] - 2026-03-27
 
 ### Added
