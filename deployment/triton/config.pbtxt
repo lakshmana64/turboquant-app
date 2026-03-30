@@ -1,0 +1,31 @@
+name: "turboquant_encode"
+backend: "python"
+max_batch_size: 128
+
+input [
+  {
+    name: "input_vectors"
+    data_type: TYPE_FP32
+    dims: [ -1 ]
+  }
+]
+
+output [
+  {
+    name: "encoded_indices"
+    data_type: TYPE_UINT8
+    dims: [ -1 ]
+  },
+  {
+    name: "encoded_scales"
+    data_type: TYPE_FP32
+    dims: [ 1 ]
+  }
+]
+
+instance_group [
+  {
+    count: 1
+    kind: KIND_GPU
+  }
+]

@@ -23,6 +23,8 @@ from .scalar_quant import _generate_rotation_matrix, get_codebook
 from .qjl_projection import QJLProjection
 from .codec import TurboQuantConfig
 from .bit_packing import pack_bits, unpack_bits, pack_signs, unpack_signs
+from .config import load_user_config
+from .triton_kernels import run_fused_quantize, HAS_TRITON
 
 
 class QJLProjectionOptimized(QJLProjection):
@@ -173,6 +175,7 @@ class TurboQuantCodecOptimized:
         self.dim = dim
         self.config = config or TurboQuantConfig()
         self.dtype = dtype
+        self.user_config = load_user_config()
         
         # Auto-detect device
         if device is None:
@@ -181,6 +184,13 @@ class TurboQuantCodecOptimized:
             self.device = torch.device(device)
         else:
             self.device = device
+            
+        # Hardware-aware mode selection
+        self.use_triton = (
+            self.device.type == 'cuda' and 
+            self.user_config.get("use_triton", False) and 
+            HAS_TRITON
+        )
         
         # Initialize optimized components
         self.qjl = QJLProjectionOptimized(
@@ -243,12 +253,16 @@ class TurboQuantCodecOptimized:
         eps = 1e-8
         x_normalized = x_rotated / (scales + eps)
         
-        # Quantize using searchsorted (vectorized)
-        indices = torch.searchsorted(self._boundaries, x_normalized.contiguous())
-        indices = indices.clamp(0, len(self._centroids) - 1)
+        if self.use_triton and self.config.num_bits == 4:
+            # Use High-Speed Triton Path
+            indices = run_fused_quantize(x_normalized, torch.ones_like(scales))
+        else:
+            # Standard Vectorized Path
+            indices = torch.searchsorted(self._boundaries, x_normalized.contiguous())
+            indices = indices.clamp(0, len(self._centroids) - 1)
         
         # Dequantize
-        x_quantized = self._centroids[indices]
+        x_quantized = self._centroids[indices.to(torch.long)]
         x_scaled = x_quantized * scales
         
         # Inverse rotation

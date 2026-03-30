@@ -10,6 +10,7 @@ import torch
 import sys
 import time
 from turboquant.sdk.optimize import optimize, TurboQuantizer
+from core.config import run_setup_wizard, load_user_config
 
 def get_memory_usage(obj):
     """Estimate memory usage of tensors in an object."""
@@ -46,7 +47,14 @@ def main():
     bench_parser.add_argument("--sq_bits", type=int, default=4, help="SQ bits")
     bench_parser.add_argument("--qjl_bits", type=int, default=64, help="QJL bits")
     
+    # Setup command
+    subparsers.add_parser("setup", help="Run the hardware setup wizard")
+    
     args = parser.parse_args()
+    
+    if args.command == "setup":
+        run_setup_wizard()
+        return
     
     if args.command == "quantize":
         print(f"Loading input: {args.input}")
