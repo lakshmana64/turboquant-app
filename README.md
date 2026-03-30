@@ -45,6 +45,25 @@ Endpoints:
 - `POST /encode`: High-speed vector compression.
 - `POST /search`: Unbiased inner-product estimation over compressed keys.
 
+## Enterprise Features
+
+### 📦 AOTInductor (AOTI) Export
+Export TurboQuant operations to standalone C++ shared libraries for deployment in environments without a full Python runtime.
+```python
+from turboquant.core.aoti import export_aot_inductor
+export_aot_inductor(codec, "turboquant_lib.so")
+```
+
+### 🌊 Streaming & Multi-GPU
+- **Streaming Encoder**: Process sequences longer than total VRAM by chunking and offloading.
+- **Distributed Support**: Scalable head-parallel and layer-parallel quantization across multiple GPUs.
+
+### 📉 Mixed Precision (FP8 / INT8)
+Leverage the latest hardware with native FP8 (e4m3fn) and INT8 support, allowing for tiered precision strategies (e.g., FP8 for Queries, 2-bit for Keys).
+
+### 📈 Monitoring & Observability
+Built-in **Prometheus** metrics and structured logging to track compression ratios, latency, and accuracy in production.
+
 ## Docker Deployment
 ## What’s In The Repo
 
