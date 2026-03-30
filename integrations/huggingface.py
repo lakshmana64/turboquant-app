@@ -218,6 +218,7 @@ def apply_turboquant_to_hf_model(
     sq_bits: int = 2,
     qjl_dim: int = 64,
     return_compressed_cache: bool = False,
+    pack_bits: bool = True,
 ) -> nn.Module:
     """
     Recursively wrap attention modules with TurboQuant cache compression.
@@ -226,7 +227,7 @@ def apply_turboquant_to_hf_model(
     If `return_compressed_cache=True`, wrapped attention layers emit
     `CompressedPastKeyValue` instances instead of raw `(k, v)` tuples.
     """
-    config = TurboQuantConfig(num_bits=sq_bits, qjl_dim=qjl_dim)
+    config = TurboQuantConfig(num_bits=sq_bits, qjl_dim=qjl_dim, pack_bits=pack_bits)
     wrapped = _wrap_attention_modules(
         model,
         config=config,

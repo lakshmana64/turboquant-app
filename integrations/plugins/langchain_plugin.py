@@ -61,6 +61,7 @@ class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):
         qjl_dim: int = 64,
         device: Optional[str] = None,
         compress_on_gpu: bool = False,
+        pack_bits: bool = True,
     ):
         """
         Initialize TurboQuant embeddings.
@@ -72,6 +73,7 @@ class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):
             qjl_dim: QJL output dimension
             device: Device for computation
             compress_on_gpu: Compress on GPU if available
+            pack_bits: Enable bit-packing for memory efficiency
         """
         if not LANGCHAIN_AVAILABLE:
             raise ImportError(
@@ -89,6 +91,7 @@ class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
         self.compress_on_gpu = compress_on_gpu
+        self.pack_bits = pack_bits
         
         # Get embedding dimension
         test_embed = base_embeddings.embed_query("test")
@@ -98,7 +101,7 @@ class TurboQuantEmbeddings(Embeddings if LANGCHAIN_AVAILABLE else object):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, pack_bits=pack_bits),
             device=device
         )
         
@@ -260,7 +263,8 @@ class TurboQuantFAISS:
         vectorstore: "FAISS",
         num_bits: int = 4,
         qjl_dim: int = 64,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        pack_bits: bool = True
     ):
         """
         Wrap FAISS with compression.
@@ -270,6 +274,7 @@ class TurboQuantFAISS:
             num_bits: Scalar quantization bits
             qjl_dim: QJL output dimension
             device: Target device
+            pack_bits: Enable bit-packing for memory efficiency
         """
         if not LANGCHAIN_AVAILABLE:
             raise ImportError("LangChain is required")
@@ -279,6 +284,7 @@ class TurboQuantFAISS:
         self.vectorstore = vectorstore
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
+        self.pack_bits = pack_bits
         
         # Get embedding dimension
         if hasattr(vectorstore, "index") and hasattr(vectorstore.index, "d"):
@@ -295,7 +301,7 @@ class TurboQuantFAISS:
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, pack_bits=pack_bits),
             device=device
         )
         
@@ -406,6 +412,7 @@ class TurboQuantFAISS:
         num_bits: int = 4,
         qjl_dim: int = 64,
         device: Optional[str] = None,
+        pack_bits: bool = True,
         **kwargs
     ) -> 'TurboQuantFAISS':
         """
@@ -417,6 +424,7 @@ class TurboQuantFAISS:
             num_bits: Scalar quantization bits
             qjl_dim: QJL output dimension
             device: Target device
+            pack_bits: Enable bit-packing for memory efficiency
             **kwargs: Additional arguments for FAISS
             
         Returns:
@@ -430,14 +438,15 @@ class TurboQuantFAISS:
             model_name=model_name,
             num_bits=num_bits,
             qjl_dim=qjl_dim,
-            device=device
+            device=device,
+            pack_bits=pack_bits
         )
         
         # Create FAISS
         vectorstore = FAISS.from_documents(documents, embeddings)
         
         # Wrap with compression
-        return cls(vectorstore, num_bits, qjl_dim, device)
+        return cls(vectorstore, num_bits, qjl_dim, device, pack_bits)
     
     def get_compression_ratio(self) -> float:
         """Get compression ratio."""
@@ -454,6 +463,7 @@ def create_compressed_vectorstore(
     num_bits: int = 4,
     qjl_dim: int = 64,
     device: Optional[str] = None,
+    pack_bits: bool = True,
     **kwargs
 ) -> "FAISS":
     """
@@ -465,6 +475,7 @@ def create_compressed_vectorstore(
         num_bits: Scalar quantization bits
         qjl_dim: QJL output dimension
         device: Target device
+        pack_bits: Enable bit-packing for memory efficiency
         **kwargs: Additional arguments
 
     Returns:
@@ -476,5 +487,6 @@ def create_compressed_vectorstore(
         num_bits=num_bits,
         qjl_dim=qjl_dim,
         device=device,
+        pack_bits=pack_bits,
         **kwargs
     )

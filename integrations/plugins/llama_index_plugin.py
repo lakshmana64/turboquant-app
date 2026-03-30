@@ -59,6 +59,7 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
         qjl_dim: int = 64,
         device: Optional[str] = None,
         compress_on_gpu: bool = False,
+        pack_bits: bool = True,
         **kwargs
     ):
         """
@@ -70,6 +71,7 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
             qjl_dim: QJL output dimension
             device: Device for computation
             compress_on_gpu: Compress on GPU if available
+            pack_bits: Enable bit-packing for memory efficiency
             **kwargs: Additional arguments for BaseEmbedding
         """
         if not LLAMAINDEX_AVAILABLE:
@@ -97,6 +99,7 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
         self.compress_on_gpu = compress_on_gpu
+        self.pack_bits = pack_bits
         
         # Get embedding dimension from base model
         if hasattr(base_model, 'embedding_dimension'):
@@ -110,7 +113,7 @@ class TurboQuantEmbedding(BaseEmbedding if LLAMAINDEX_AVAILABLE else object):
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, pack_bits=pack_bits),
             device=device
         )
         
@@ -269,7 +272,8 @@ class TurboQuantVectorStore:
         index: "VectorStoreIndex",
         num_bits: int = 4,
         qjl_dim: int = 64,
-        device: Optional[str] = None
+        device: Optional[str] = None,
+        pack_bits: bool = True
     ):
         """
         Wrap a LlamaIndex index with compression.
@@ -279,6 +283,7 @@ class TurboQuantVectorStore:
             num_bits: Scalar quantization bits
             qjl_dim: QJL output dimension
             device: Target device
+            pack_bits: Enable bit-packing for memory efficiency
         """
         if not LLAMAINDEX_AVAILABLE:
             raise ImportError("LlamaIndex is required")
@@ -288,6 +293,7 @@ class TurboQuantVectorStore:
         self.index = index
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
+        self.pack_bits = pack_bits
         
         # Get embedding dimension
         embed_dim = index._embed_model.embed_dim if hasattr(index, '_embed_model') else 1024
@@ -296,7 +302,7 @@ class TurboQuantVectorStore:
         device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.codec = TurboQuantCodecOptimized(
             dim=embed_dim,
-            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim),
+            config=TurboQuantConfig(num_bits=num_bits, qjl_dim=qjl_dim, pack_bits=pack_bits),
             device=device
         )
         
@@ -389,6 +395,7 @@ def create_compressed_index(
     num_bits: int = 4,
     qjl_dim: int = 64,
     device: Optional[str] = None,
+    pack_bits: bool = True,
     **kwargs
 ) -> "VectorStoreIndex":
     """
@@ -399,6 +406,7 @@ def create_compressed_index(
         num_bits: Scalar quantization bits
         qjl_dim: QJL output dimension
         device: Target device
+        pack_bits: Enable bit-packing for memory efficiency
         **kwargs: Additional arguments for VectorStoreIndex
         
     Returns:
@@ -411,7 +419,8 @@ def create_compressed_index(
     embed_model = TurboQuantEmbedding(
         num_bits=num_bits,
         qjl_dim=qjl_dim,
-        device=device
+        device=device,
+        pack_bits=pack_bits
     )
     
     # Create index

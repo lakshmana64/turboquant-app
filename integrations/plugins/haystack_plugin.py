@@ -49,17 +49,23 @@ class TurboQuantDocumentStore:
         num_bits: int = 4,
         qjl_dim: int = 64,
         device: str = "cpu",
+        pack_bits: bool = True,
     ):
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
         self.device = device
+        self.pack_bits = pack_bits
         self.documents: List[Document] = []
         self.encoded_vectors: Optional[Dict[str, Tensor]] = None
         self.codecs: Dict[int, TurboQuantCodecOptimized] = {}
 
     def _get_codec(self, dim: int) -> TurboQuantCodecOptimized:
         if dim not in self.codecs:
-            config = TurboQuantConfig(num_bits=self.num_bits, qjl_dim=self.qjl_dim)
+            config = TurboQuantConfig(
+                num_bits=self.num_bits, 
+                qjl_dim=self.qjl_dim,
+                pack_bits=self.pack_bits
+            )
             self.codecs[dim] = TurboQuantCodecOptimized(
                 dim=dim,
                 config=config,
@@ -138,19 +144,25 @@ class TurboQuantDocumentEmbedder(SentenceTransformersDocumentEmbedder):
         num_bits: int = 4,
         qjl_dim: int = 64,
         device: str = "cpu",
+        pack_bits: bool = True,
         **kwargs,
     ):
         super().__init__(model=model, **kwargs)
         self.num_bits = num_bits
         self.qjl_dim = qjl_dim
         self.device = device
+        self.pack_bits = pack_bits
         self._codec: Optional[TurboQuantCodecOptimized] = None
         self.last_encoded: Optional[Dict[str, Tensor]] = None
         self._compressed_count = 0
 
     def _get_codec(self, dim: int) -> TurboQuantCodecOptimized:
         if self._codec is None or self._codec.dim != dim:
-            config = TurboQuantConfig(num_bits=self.num_bits, qjl_dim=self.qjl_dim)
+            config = TurboQuantConfig(
+                num_bits=self.num_bits, 
+                qjl_dim=self.qjl_dim,
+                pack_bits=self.pack_bits
+            )
             self._codec = TurboQuantCodecOptimized(
                 dim=dim,
                 config=config,

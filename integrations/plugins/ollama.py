@@ -39,6 +39,7 @@ class OllamaPluginConfig:
     num_bits: int = 4
     qjl_dim: int = 64
     seed: int = 42
+    pack_bits: bool = True
     
     # Cache settings
     cache_enabled: bool = True
@@ -177,7 +178,8 @@ class OllamaPlugin:
             tq_config = TurboQuantConfig(
                 num_bits=self.config.num_bits,
                 qjl_dim=self.config.qjl_dim,
-                seed=self.config.seed
+                seed=self.config.seed,
+                pack_bits=self.config.pack_bits
             )
             self._codec = TurboQuantCodec(dim=dim, config=tq_config)
         return self._codec
@@ -419,13 +421,15 @@ def compress(
     prompt: str,
     model: str = "llama3",
     num_bits: int = 4,
-    qjl_dim: int = 64
+    qjl_dim: int = 64,
+    pack_bits: bool = True
 ) -> Optional[CompressionResult]:
     """Quick compress a single prompt."""
     plugin = OllamaPlugin(
         model=model,
         num_bits=num_bits,
-        qjl_dim=qjl_dim
+        qjl_dim=qjl_dim,
+        pack_bits=pack_bits
     )
     if not plugin.connect():
         print("Warning: Could not connect to Ollama")

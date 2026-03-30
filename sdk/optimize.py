@@ -2,26 +2,22 @@
 TurboQuant SDK - High-level API for Unbiased Quantization
 
 This module provides a simple, unified interface for the two-stage TurboQuant
-quantization scheme.
+quantization scheme, leveraging the optimized codec under the hood.
 """
 
 import torch
 from torch import Tensor
 from typing import Dict, Any, Optional, Tuple
 
-from turboquant.core.scalar_quant import (
-    _generate_rotation_matrix,
-    dequantize_scalar,
-    quantize_scalar,
-)
-from turboquant.core.estimator import UnbiasedInnerProductEstimator
+from turboquant.core.codec import TurboQuantCodec, TurboQuantConfig
 
 
 class TurboQuantizer:
     """
     High-level API for TurboQuant quantization and estimation.
     
-    Manages both Stage 1 (Scalar Quantization) and Stage 2 (QJL Residuals).
+    Wraps TurboQuantCodec to provide a simplified interface for 
+    encoding and inner product estimation.
     """
     
     def __init__(
@@ -30,7 +26,8 @@ class TurboQuantizer:
         qjl_bits: int = 64,
         sq_bits: int = 2,
         seed: int = 42,
-        device: Optional[torch.device] = None
+        device: Optional[torch.device] = None,
+        pack_bits: bool = True
     ):
         """
         Initialize the quantizer.
@@ -41,32 +38,26 @@ class TurboQuantizer:
             sq_bits: Bits per coordinate for scalar quantization
             seed: Random seed for reproducibility
             device: Target device (CPU/CUDA)
+            pack_bits: Whether to enable bit-packing for memory efficiency
         """
         self.input_dim = input_dim
-        self.qjl_bits = qjl_bits
-        self.sq_bits = sq_bits
-        self.device = device
-        
-        # Initialize core components
-        self.rotation_matrix = _generate_rotation_matrix(input_dim, seed, device)
-        self.estimator = UnbiasedInnerProductEstimator(input_dim, qjl_bits, seed, device)
+        self.config = TurboQuantConfig(
+            num_bits=sq_bits,
+            qjl_dim=qjl_bits,
+            seed=seed,
+            pack_bits=pack_bits
+        )
+        self.codec = TurboQuantCodec(input_dim, config=self.config, device=device)
 
     @property
     def compression_ratio(self) -> float:
-        """
-        Return compressed size / original size.
-
-        A smaller value is better. For example, ``0.25`` means the
-        representation uses 25% of the original FP16 storage.
-        """
-        compressed_bits = self.sq_bits * self.input_dim + self.qjl_bits
-        original_bits = 16 * self.input_dim
-        return compressed_bits / original_bits
+        """Return compressed size / original size (vs FP16)."""
+        return self.codec.compression_ratio
 
     @property
     def compression_factor(self) -> float:
-        """Return original size / compressed size for x-style reporting."""
-        return 1.0 / self.compression_ratio
+        """Return original size / compressed size (vs FP16)."""
+        return self.codec.compression_factor
 
     def encode(self, x: Tensor) -> Dict[str, Any]:
         """
@@ -76,33 +67,9 @@ class TurboQuantizer:
             x: Input tensor of shape (..., d)
             
         Returns:
-            Dictionary containing quantized components:
-                - indices: Stage 1 indices
-                - scales: Stage 1 scale factors
-                - r_signs: Stage 2 residual signs
-                - r_norm: Stage 2 residual norms
-                - x_hat: Reconstructed Stage 1 vector (cached for speed)
+            Dictionary containing quantized and (optionally) packed components.
         """
-        # Stage 1: Scalar Quantization with Random Rotation
-        indices, scales, _, _ = quantize_scalar(
-            x, self.sq_bits, rotation_matrix=self.rotation_matrix
-        )
-        
-        # Reconstruction for residual computation
-        x_hat = dequantize_scalar(
-            indices, scales, self.sq_bits, rotation_matrix=self.rotation_matrix
-        )
-        
-        # Stage 2: QJL Residual Encoding
-        _, r_signs, r_norm = self.estimator.encode_key(x, x_hat)
-        
-        return {
-            'indices': indices,
-            'scales': scales,
-            'r_signs': r_signs,
-            'r_norm': r_norm,
-            'x_hat': x_hat
-        }
+        return self.codec.encode_keys_batch(x)
 
     def estimate(self, q: Tensor, encoded: Dict[str, Any]) -> Tensor:
         """
@@ -115,9 +82,7 @@ class TurboQuantizer:
         Returns:
             Estimated inner product
         """
-        return self.estimator.estimate(
-            q, encoded['x_hat'], encoded['r_signs'], encoded['r_norm']
-        )
+        return self.codec.estimate_inner_products(q, encoded)
 
     def estimate_batch(self, queries: Tensor, encoded_keys: Dict[str, Any]) -> Tensor:
         """
@@ -130,19 +95,15 @@ class TurboQuantizer:
         Returns:
             Estimated inner product matrix (n_q, n_k)
         """
-        return self.estimator.estimate_batch(
-            queries, 
-            encoded_keys['x_hat'], 
-            encoded_keys['r_signs'], 
-            encoded_keys['r_norm']
-        )
+        return self.codec.estimate_inner_products(queries, encoded_keys)
 
 
 def optimize(
     x: Tensor, 
     qjl_bits: int = 64, 
     sq_bits: int = 2, 
-    seed: int = 42
+    seed: int = 42,
+    pack_bits: bool = True
 ) -> Tuple[Dict[str, Any], TurboQuantizer]:
     """
     One-line API to quantize a tensor and return the quantizer instance.
@@ -152,11 +113,12 @@ def optimize(
         qjl_bits: Number of QJL bits
         sq_bits: Bits per coordinate
         seed: Random seed
+        pack_bits: Whether to enable bit-packing
         
     Returns:
         tuple of (encoded_data, quantizer_instance)
     """
     d = x.shape[-1]
-    quantizer = TurboQuantizer(d, qjl_bits, sq_bits, seed, x.device)
+    quantizer = TurboQuantizer(d, qjl_bits, sq_bits, seed, x.device, pack_bits=pack_bits)
     encoded = quantizer.encode(x)
     return encoded, quantizer

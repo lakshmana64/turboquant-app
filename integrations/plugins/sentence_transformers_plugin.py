@@ -35,6 +35,7 @@ class SentenceTransformersPluginConfig:
     num_bits: int = 4
     qjl_dim: int = 64
     seed: int = 42
+    pack_bits: bool = True
     cache_enabled: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
@@ -73,6 +74,7 @@ class SentenceTransformersPlugin:
                 num_bits=self.config.num_bits,
                 qjl_dim=self.config.qjl_dim,
                 seed=self.config.seed,
+                pack_bits=self.config.pack_bits,
             )
             self._codec = TurboQuantCodec(dim=dim, config=tq_config)
         return self._codec
