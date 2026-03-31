@@ -1,0 +1,13 @@
+{
+  "num_vectors": 1000,
+  "dimension": 4096,
+  "original_size_mb": 15.625,
+  "compressed_size_mb": 1.9683837890625,
+  "compression_ratio": 3.9689922480620154,
+  "memory_savings_percent": 87.40234375,
+  "compress_time_ms": 206.8028450012207,
+  "decompress_time_ms": 29.349327087402344,
+  "mse": 0.009869325906038284,
+  "cosine_similarity": 0.9950631260871887,
+  "dot_product_correlation": 0.17830435931682587
+}
