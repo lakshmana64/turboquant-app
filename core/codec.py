@@ -200,4 +200,7 @@ class TurboQuantCodec:
         x_hat_bytes = num_keys * self.dim * 4 if not self.config.pack_bits else 0
         compressed = indices_bytes + scales_bytes + r_signs_bytes + r_norm_bytes + x_hat_bytes
         
+        if original == 0:
+            return {'original': 0, 'compressed': 0, 'ratio': 1.0, 'factor': 1.0}
+            
         return {'original': original, 'compressed': compressed, 'ratio': compressed / original, 'factor': original / compressed}

@@ -65,17 +65,42 @@ Leverage the latest hardware with native FP8 (e4m3fn) and INT8 support, allowing
 Built-in **Prometheus** metrics and structured logging to track compression ratios, latency, and accuracy in production.
 
 ## Docker Deployment
-## What’s In The Repo
+## What's In The Repo
 
 - `turboquant/`: installable Python package.
 - `service.py`: **NEW** FastAPI production microservice.
 - `core/adaptive.py`: **NEW** Adaptive Bit-Rate intelligence.
 - `core/value_quant.py`: **NEW** Unbiased Value vector compression.
 - `core/triton_kernels.py`: **NEW** High-speed fused GPU kernels.
+- `core/turbo_formats.py`: **NEW** Turbo2/3/4 format presets (turboquant_plus).
+- `core/polar_quant.py`: **NEW** PolarQuant algorithm (turboquant_plus).
+- `core/sparse_v.py`: **NEW** Sparse V decoding (turboquant_plus).
+- `core/asymmetric_kv.py`: **NEW** Asymmetric K/V support (turboquant_plus).
+- `core/outlier.py`: **NEW** Outlier channel handling (turboquant_plus).
+- `core/layer_adaptive.py`: **NEW** Layer-adaptive mode (turboquant_plus).
+- `core/norm_correction.py`: **NEW** Norm correction for perplexity (turboquant_plus).
+- `integrations/llama_cpp.py`: **NEW** llama.cpp integration (turboquant_plus).
 - `app.py`: Gradio dashboard for interactive experiments.
 - `cli/`: Command-line setup and quantization workflow.
 - `integrations/`: Ready-made adapters for LangChain, LlamaIndex, Hugging Face, etc.
 - `ts/`: TypeScript reference implementation with bit-packing parity.
+
+## turboquant_plus Features
+
+This codebase now implements all major features from [turboquant_plus](https://github.com/TheTom/turboquant_plus):
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Turbo Formats** | ✅ | turbo2 (6.4x), turbo3 (4.6x), turbo4 (3.8x) presets |
+| **PolarQuant** | ✅ | Polar coordinate quantization with WHT rotation |
+| **Sparse V Decoding** | ✅ | Skip low-weight V positions (+22.8% speed at 32K) |
+| **Asymmetric K/V** | ✅ | Independent K/V formats (e.g., q8_0 K + turbo4 V) |
+| **Outlier Handling** | ✅ | Separate high-precision encoding for outliers |
+| **Layer-Adaptive** | ✅ | Keep last N layers at q8_0, compress rest |
+| **Norm Correction** | ✅ | Per-token/layer correction for perplexity |
+| **llama.cpp** | ✅ | Production integration with Metal/CUDA support |
+
+See `TURBOQUANT_PLUS_FEATURES.md` for detailed documentation.
 
 
 ## Installation

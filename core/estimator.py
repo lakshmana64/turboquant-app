@@ -43,6 +43,8 @@ def _qjl_correction_factor(m: int) -> float:
     Returns:
         Scaling factor sqrt(π/2) / m
     """
+    if m == 0:
+        return 0.0
     return math.sqrt(math.pi / 2) / m
 
 

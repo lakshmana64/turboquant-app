@@ -70,6 +70,9 @@ class QJLProjection:
         Returns:
             Projection matrix R of shape (output_dim, input_dim)
         """
+        if self.output_dim == 0:
+            return torch.empty(0, self.input_dim, device=self.device)
+            
         generator = torch.Generator(device=self.device)
         generator.manual_seed(self.seed)
         
@@ -101,6 +104,9 @@ class QJLProjection:
         """
         # Handle batch dimensions
         orig_shape = x.shape
+        if self.output_dim == 0:
+            return torch.empty((*orig_shape[:-1], 0), device=x.device, dtype=x.dtype)
+        
         x_flat = x.view(-1, self.input_dim)
         
         # Project: (batch, m) = (batch, d) @ (d, m)
@@ -152,6 +158,9 @@ class QJLProjection:
         Returns:
             Estimated inner product of shape (...)
         """
+        if self.output_dim == 0:
+            return torch.zeros(q_projected.shape[:-1], device=q_projected.device, dtype=q_projected.dtype)
+        
         m = self.output_dim
         
         # Scaling factor from Gaussian projection theory

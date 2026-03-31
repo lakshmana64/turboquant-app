@@ -10,7 +10,7 @@ High-performance implementations with:
 
 import torch
 from torch import Tensor
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Optional, Dict, Any
 import math
 
 from .scalar_quant import _generate_rotation_matrix, get_codebook

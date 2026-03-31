@@ -14,6 +14,13 @@ Modules:
   - aoti: AOTInductor compilation and export
   - distributed: Multi-GPU support
   - bit_packing: Bit-packing utilities for low-bit indices
+  - turbo_formats: Turbo2/3/4 format presets (turboquant_plus)
+  - polar_quant: PolarQuant algorithm (turboquant_plus)
+  - sparse_v: Sparse V decoding (turboquant_plus)
+  - asymmetric_kv: Asymmetric K/V support (turboquant_plus)
+  - outlier: Outlier channel handling (turboquant_plus)
+  - layer_adaptive: Layer-adaptive mode (turboquant_plus)
+  - norm_correction: Norm correction for perplexity (turboquant_plus)
 """
 
 from .bit_packing import (
@@ -98,6 +105,62 @@ from .distributed import (
     DistributedKVCacheStreamer
 )
 
+# TurboQuant Plus features (turboquant_plus compatibility)
+from .turbo_formats import (
+    TurboFormat,
+    TURBO2,
+    TURBO3,
+    TURBO4,
+    Q8_0,
+    Q4_0,
+    FORMAT_PRESETS,
+    get_format,
+    list_formats,
+    create_codec_from_format,
+    calculate_memory_usage
+)
+
+from .polar_quant import (
+    PolarQuantConfig,
+    PolarQuantCodec,
+    polar_quant,
+    polar_quant_roundtrip
+)
+
+from .sparse_v import (
+    SparseVDecoder,
+    SparseKVCache,
+    apply_sparse_v_decoding
+)
+
+from .asymmetric_kv import (
+    AsymmetricKVConfig,
+    AsymmetricKVCache,
+    create_asymmetric_cache,
+    recommend_asymmetric_config
+)
+
+from .outlier import (
+    OutlierConfig,
+    OutlierHandler,
+    OutlierAwareCodec,
+    apply_outlier_aware_quantization
+)
+
+from .layer_adaptive import (
+    LayerAdaptiveConfig,
+    LayerAdaptiveKVCache,
+    create_layer_adaptive_cache,
+    recommend_layer_config
+)
+
+from .norm_correction import (
+    NormCorrectionConfig,
+    NormCorrector,
+    NormCorrectedCodec,
+    apply_norm_correction
+)
+
 __all__ = [
     # Scalar quantization
     'quantize_scalar',
@@ -162,10 +225,46 @@ __all__ = [
     # Distributed (Phase 3)
     'DistributedStreamingEncoder',
     'DistributedKVCacheStreamer',
-    
+
     # Bit-packing
     'pack_bits',
     'unpack_bits',
     'pack_signs',
     'unpack_signs',
+
+    # TurboQuant Plus features (turboquant_plus compatibility)
+    'TurboFormat',
+    'TURBO2',
+    'TURBO3',
+    'TURBO4',
+    'Q8_0',
+    'Q4_0',
+    'FORMAT_PRESETS',
+    'get_format',
+    'list_formats',
+    'create_codec_from_format',
+    'calculate_memory_usage',
+    'PolarQuantConfig',
+    'PolarQuantCodec',
+    'polar_quant',
+    'polar_quant_roundtrip',
+    'SparseVDecoder',
+    'SparseKVCache',
+    'apply_sparse_v_decoding',
+    'AsymmetricKVConfig',
+    'AsymmetricKVCache',
+    'create_asymmetric_cache',
+    'recommend_asymmetric_config',
+    'OutlierConfig',
+    'OutlierHandler',
+    'OutlierAwareCodec',
+    'apply_outlier_aware_quantization',
+    'LayerAdaptiveConfig',
+    'LayerAdaptiveKVCache',
+    'create_layer_adaptive_cache',
+    'recommend_layer_config',
+    'NormCorrectionConfig',
+    'NormCorrector',
+    'NormCorrectedCodec',
+    'apply_norm_correction',
 ]

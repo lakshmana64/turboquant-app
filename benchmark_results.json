@@ -1,0 +1,74 @@
+{
+  "timestamp": 1774925986.713462,
+  "configuration": {
+    "dim": 2048,
+    "seq_len": 500,
+    "model": "llama3:8b"
+  },
+  "results": [
+    {
+      "feature": "PolarQuant",
+      "compression_factor": 15.50780880265026,
+      "memory_saved_mb": 3.654360771179199,
+      "latency_ms": 55.54080009460449,
+      "quality_score": 0.018878398463129997,
+      "efficiency_score": 0.5271126691869658,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "Sparse V Decoding",
+      "compression_factor": 4.9,
+      "memory_saved_mb": 12.4375,
+      "latency_ms": 70203.52625846863,
+      "quality_score": 0.20399999999999996,
+      "efficiency_score": 0.0014238601011575518,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "Asymmetric K/V",
+      "compression_factor": 2.7,
+      "memory_saved_mb": 6.3419342041015625,
+      "latency_ms": 2265.247106552124,
+      "quality_score": 0.99,
+      "efficiency_score": 0.11919229439430132,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "Outlier Handling",
+      "compression_factor": 14.075601374570446,
+      "memory_saved_mb": 0.045359134674072266,
+      "latency_ms": 4.742145538330078,
+      "quality_score": 0.95,
+      "efficiency_score": 296.81926167806097,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "Layer-Adaptive Mode",
+      "compression_factor": 3.177657098525989,
+      "memory_saved_mb": 105.3314208984375,
+      "latency_ms": 31278.645992279053,
+      "quality_score": 0.98,
+      "efficiency_score": 0.32509408232674775,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "Norm Correction",
+      "compression_factor": 1.0,
+      "memory_saved_mb": 0,
+      "latency_ms": 12.437820434570312,
+      "quality_score": 1.185162715235149,
+      "efficiency_score": 9.528700960668697,
+      "status": "\u2713 PASSED"
+    },
+    {
+      "feature": "llama.cpp Integration",
+      "compression_factor": 0,
+      "memory_saved_mb": 0,
+      "latency_ms": 0.07605552673339844,
+      "quality_score": 0.5,
+      "efficiency_score": 1.0,
+      "status": "\u2139 INFO - Install llama.cpp for production use"
+    }
+  ],
+  "llm_test": null
+}

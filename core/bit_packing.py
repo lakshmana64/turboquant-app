@@ -24,6 +24,9 @@ def pack_bits(x: Tensor, bits: int) -> Tensor:
     if bits == 8:
         return x.to(torch.uint8)
     
+    if x.numel() == 0:
+        return torch.empty((*x.shape[:-1], 0), dtype=torch.uint8, device=x.device)
+
     if bits not in [1, 2, 4]:
         raise ValueError(f"Unsupported bit width for packing: {bits}. Must be 1, 2, or 4.")
     
@@ -74,6 +77,9 @@ def unpack_bits(packed: Tensor, bits: int, original_dim: int) -> Tensor:
     if bits == 8:
         return packed.to(torch.int64)
         
+    if packed.numel() == 0:
+        return torch.empty((*packed.shape[:-1], original_dim), dtype=torch.int64, device=packed.device)
+
     if bits not in [1, 2, 4]:
         raise ValueError(f"Unsupported bit width for unpacking: {bits}")
         
