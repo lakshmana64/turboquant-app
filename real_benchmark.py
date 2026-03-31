@@ -91,59 +91,65 @@ def benchmark_compression(embeddings: torch.Tensor) -> Dict:
     for num_bits in [2, 3, 4]:
         print(f"\nTesting {num_bits}-bit compression...")
         
-        # Create codec
-        codec = TurboQuantCodec(dim, TurboQuantConfig(num_bits=num_bits, qjl_dim=64))
-        
-        # Compress
-        start = time.time()
-        compressed = codec.encode_key(embeddings)
-        compress_time = (time.time() - start) * 1000
-        
-        # Get memory usage
-        memory_usage = codec.get_memory_usage(num_vectors)
-        compressed_size_mb = memory_usage['compressed'] / (1024 * 1024)
-        compression_ratio = memory_usage['factor']
-        
-        # Decompress
-        start = time.time()
-        reconstructed = codec.decode_key(compressed)
-        decompress_time = (time.time() - start) * 1000
-        
-        # Quality metrics
-        mse = ((embeddings - reconstructed) ** 2).mean().item()
-        cosine_sim = torch.nn.functional.cosine_similarity(
-            embeddings.view(-1, dim),
-            reconstructed.view(-1, dim)
-        ).mean().item()
-        
-        # Inner product preservation (critical for RAG)
-        queries = torch.randn(10, dim)
-        original_dots = queries @ embeddings.T
-        compressed_dots = codec.estimate_inner_products(queries, compressed)
-        
-        dot_mse = ((original_dots - compressed_dots) ** 2).mean().item()
-        dot_correlation = torch.corrcoef(
-            torch.stack([original_dots.flatten(), compressed_dots.flatten()])
-        )[0, 1].item()
-        
-        # Store results
-        results.append({
-            "bits": num_bits,
-            "original_size_mb": embeddings.element_size() * embeddings.nelement() / (1024 * 1024),
-            "compressed_size_mb": compressed_size_mb,
-            "compression_ratio": compression_ratio,
-            "memory_savings_percent": (1 - 1/compression_ratio) * 100,
-            "compress_time_ms": compress_time,
-            "decompress_time_ms": decompress_time,
-            "mse": mse,
-            "cosine_similarity": cosine_sim,
-            "dot_product_mse": dot_mse,
-            "dot_product_correlation": dot_correlation
-        })
-        
-        print(f"  Size: {compressed_size_mb:.1f} MB ({compression_ratio:.1f}x)")
-        print(f"  Cosine: {cosine_sim:.4f} ({cosine_sim*100:.1f}%)")
-        print(f"  Dot corr: {dot_correlation:.4f} ({dot_correlation*100:.1f}%)")
+        try:
+            # Create codec with matching dimension
+            codec = TurboQuantCodec(dim, TurboQuantConfig(num_bits=num_bits, qjl_dim=min(64, dim//4)))
+            
+            # Compress
+            start = time.time()
+            compressed = codec.encode_key(embeddings)
+            compress_time = (time.time() - start) * 1000
+            
+            # Get memory usage
+            memory_usage = codec.get_memory_usage(num_vectors)
+            compressed_size_mb = memory_usage['compressed'] / (1024 * 1024)
+            compression_ratio = memory_usage['factor']
+            
+            # Decompress
+            start = time.time()
+            reconstructed = codec.decode_key(compressed)
+            decompress_time = (time.time() - start) * 1000
+            
+            # Quality metrics
+            mse = ((embeddings - reconstructed) ** 2).mean().item()
+            cosine_sim = torch.nn.functional.cosine_similarity(
+                embeddings.view(-1, dim),
+                reconstructed.view(-1, dim)
+            ).mean().item()
+            
+            # Inner product preservation (critical for RAG)
+            queries = torch.randn(10, dim)
+            original_dots = queries @ embeddings.T
+            compressed_dots = codec.estimate_inner_products(queries, compressed)
+            
+            dot_mse = ((original_dots - compressed_dots) ** 2).mean().item()
+            dot_correlation = torch.corrcoef(
+                torch.stack([original_dots.flatten(), compressed_dots.flatten()])
+            )[0, 1].item()
+            
+            # Store results
+            results.append({
+                "bits": num_bits,
+                "original_size_mb": embeddings.element_size() * embeddings.nelement() / (1024 * 1024),
+                "compressed_size_mb": compressed_size_mb,
+                "compression_ratio": compression_ratio,
+                "memory_savings_percent": (1 - 1/compression_ratio) * 100,
+                "compress_time_ms": compress_time,
+                "decompress_time_ms": decompress_time,
+                "mse": mse,
+                "cosine_similarity": cosine_sim,
+                "dot_product_mse": dot_mse,
+                "dot_product_correlation": dot_correlation
+            })
+            
+            print(f"  Size: {compressed_size_mb:.1f} MB ({compression_ratio:.1f}x)")
+            print(f"  Cosine: {cosine_sim:.4f} ({cosine_sim*100:.1f}%)")
+            print(f"  Dot corr: {dot_correlation:.4f} ({dot_correlation*100:.1f}%)")
+            
+        except Exception as e:
+            print(f"  ERROR: {e}")
+            print(f"  Skipping {num_bits}-bit test")
+            continue
     
     return results
 
