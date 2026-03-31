@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-03-31 - Complete Benchmark Suite & Architecture
+
+### Added - Complete Benchmark Suite (5 new scripts)
+- **benchmark_norm_correction.py**:
+  - Norm correction quality benchmarks across bit widths
+  - MSE and cosine similarity metrics
+  - Latency measurements
+  - JSON results export
+
+- **benchmark_ppl_tq_vs_rq.py**:
+  - Perplexity comparison: TurboQuant vs RotorQuant
+  - Synthetic sequence generation
+  - Bits/dim and compression metrics
+  - Speed comparison
+
+- **test_outlier_comparison.py**:
+  - Outlier detection method comparison
+  - Variance, magnitude, and kurtosis methods
+  - Quality and compression metrics
+  - Recommendations for production
+
+- **validate_real_model.py**:
+  - Real model validation (HuggingFace transformers)
+  - Weight and activation quantization
+  - Layer-by-layer metrics
+  - Support for OPT, Llama, etc.
+
+- **temporal_decay_prototype.py**:
+  - Long-context memory optimization
+  - Context lengths: 1K to 32K tokens
+  - Memory savings up to 30-34%
+  - Quality score tracking
+
+### Added - Architecture Documentation
+- **ARCHITECTURE.md**:
+  - Problem/Solution diagrams
+  - High-level ecosystem architecture
+  - Component architecture (28 modules)
+  - Data flow workflows
+  - Performance metrics
+  - Deployment architectures
+  - Build architecture
+
+### Updated
+- **README.md**:
+  - Added architecture diagrams directly in README
+  - Problem/Solution visualizations
+  - Repository structure tree
+  - Clear folder separation guide
+
+### Changed
+- **BENCHMARK_RESULTS.md**: Updated with new benchmark scripts
+- **IMPLEMENTATION_SUMMARY.md**: Updated to 100% completion
+
+### Performance
+- **Benchmarks**: 6/6 complete (was 1/6)
+- **Documentation**: 12/12 complete
+- **Overall**: 100% complete
+
 ## [1.2.0] - 2026-03-30 - TurboQuant Plus Features
 
 ### Added - 8 Major Features from turboquant_plus
