@@ -214,6 +214,7 @@ cmake --build . --config Release
 
 ### Getting Started
 - [`README.md`](README.md) - This file (overview)
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) - **System architecture diagrams** ⭐ NEW
 - [`llama.cpp/README.md`](llama.cpp/README.md) - llama.cpp setup
 - [`CUDA_SETUP.md`](CUDA_SETUP.md) - NVIDIA GPU setup
 
