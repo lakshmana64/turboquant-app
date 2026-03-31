@@ -206,7 +206,7 @@ TurboQuant has been validated across a wide range of LLM architectures. Results 
 | **DeepSeek Coder (1.3B)** | 2048 | **7.9x** | **0.871** | ✅ High |
 | **DeepSeek R1 (Distill)** | 1536 | **7.8x** | **0.750** | ⚡ Fast-Path |
 
-*Validation run on March 30, 2026. Attn Cosine 1.000 means compressed attention is mathematically identical to FP32 focus.*
+*Validation run on March 31, 2026. Attn Cosine 1.000 means compressed attention is mathematically identical to FP32 focus.*
 
 ## Local Validation
 
