@@ -190,6 +190,55 @@ turboquant-app/ (Repository Root)
 
 ---
 
+## 💡 How TurboQuant Solves LLM Memory Problems
+
+### The Problem: LLMs Need Too Much Memory
+
+```
+BEFORE TurboQuant:
+┌─────────────────────────────────────────┐
+│  LLM KV Cache (32K context)             │
+│  FP16: 64 GB VRAM                       │
+│  ████████████████████████████           │
+│                                         │
+│  Problem: Doesn't fit on RTX 3090/4090 │
+└─────────────────────────────────────────┘
+```
+
+### The Solution: 75% Memory Reduction
+
+```
+AFTER TurboQuant:
+┌─────────────────────────────────────────┐
+│  LLM KV Cache (32K context)             │
+│  Turbo4: 16 GB VRAM                     │
+│  ████████                               │
+│                                         │
+│  Result: Fits on consumer GPU! ✅       │
+└─────────────────────────────────────────┘
+```
+
+### Quick Example: Compress Embeddings 8x
+
+```python
+from turboquant import optimize
+
+# Load embeddings (FP32, 10 GB for 1M embeddings)
+embeddings = model.encode(documents)
+
+# Compress with TurboQuant (4-bit)
+compressed, codec = optimize(embeddings, sq_bits=4)
+# Now only 1.25 GB! (87.5% smaller)
+
+# Query with unbiased inner product
+query = model.encode("search query")
+results = vectorstore.search(query, codec=codec)
+```
+
+**See [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md) for complete examples and visualizations.**
+
+---
+
 ## 🎯 Use Cases
 
 ### 1. RAG Systems (Retrieval Augmented Generation)
@@ -296,7 +345,8 @@ cmake --build . --config Release
 
 ### Getting Started
 - [`README.md`](README.md) - This file (overview)
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) - **System architecture diagrams** ⭐ NEW
+- [`HOW_IT_WORKS.md`](HOW_IT_WORKS.md) - **How TurboQuant solves LLM memory problems** ⭐ NEW
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) - System architecture diagrams
 - [`llama.cpp/README.md`](llama.cpp/README.md) - llama.cpp setup
 - [`CUDA_SETUP.md`](CUDA_SETUP.md) - NVIDIA GPU setup
 
