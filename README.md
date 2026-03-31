@@ -70,20 +70,41 @@ from turboquant.integrations.plugins import OllamaPlugin
 
 | Component | Purpose | When to Use |
 |-----------|---------|-------------|
-| `core/` | Quantization algorithms | Compressing vectors/embeddings |
+| `core/` | Quantization algorithms (28 modules) | Compressing vectors/embeddings |
 | `integrations/` | LangChain, LlamaIndex, etc. | Using with AI frameworks |
 | `service.py` | FastAPI server | Production API deployment |
 | `app.py` | Gradio dashboard | Interactive experiments |
 | `benchmarks/` | Performance testing | Measuring compression/speed |
 
-### llama.cpp Fork (`llama.cpp/turboquant-llama-cpp/`)
+### llama.cpp Fork (`llama.cpp/`)
 
 | Component | Purpose | When to Use |
 |-----------|---------|-------------|
+| `turboquant-llama-cpp/` | llama.cpp with TurboQuant | Building production binaries |
 | `main` | LLM inference | Running chat/completion |
 | `server` | HTTP API | Production serving |
 | `quantize` | Model conversion | Converting models to GGUF |
 | Metal/CUDA kernels | GPU acceleration | Fast inference on GPU |
+
+### Reference Implementation (`llama-cpp/`)
+
+| Component | Purpose | When to Use |
+|-----------|---------|-------------|
+| `turboquant/` | Original Python code | Reference, research |
+| `llama.cpp/` | C/C++ implementation | Building from source |
+| `tests/` | 500+ test suite | Validation |
+| `benchmarks/` | Academic benchmarks | Performance research |
+| `docs/` | Research documentation | Deep dives |
+
+**Folder Structure:**
+```
+turboquant-app/ (Repository Root)
+├── turboquant-app/          # Your main Python package (PRODUCTION)
+├── llama.cpp/               # llama.cpp fork for binaries
+├── llama-cpp/               # Original turboquant_plus reference
+├── CUDA_SETUP.md            # CUDA installation guide
+└── README.md                # This file
+```
 
 ---
 
