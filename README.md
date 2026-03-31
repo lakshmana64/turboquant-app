@@ -8,19 +8,71 @@
 
 TurboQuant is a **complete LLM quantization platform** that reduces memory usage by 75% while maintaining model quality.
 
-### Two Components:
+### The Problem We Solve
 
-1. **🐍 Python Package** (`turboquant-app/`)
-   - Quantization algorithms
-   - Model optimization tools
-   - Integration plugins
-   - **Use for**: Training, optimization, embedding compression
+```
+┌─────────────────────────────────────────────────────────┐
+│              THE MEMORY CRISIS                           │
+├─────────────────────────────────────────────────────────┤
+│  LLMs Need HUGE Memory:                                 │
+│  • 7B Model @ 4K context  = 8 GB VRAM    ❌            │
+│  • 7B Model @ 32K context = 64 GB VRAM   ❌            │
+│  • 1M Embeddings          = 10+ GB RAM   ❌            │
+│                                                         │
+│  Result: Can't run on consumer hardware!                │
+└─────────────────────────────────────────────────────────┘
+```
 
-2. **🦙 llama.cpp Fork** (`llama.cpp/turboquant-llama-cpp/`)
-   - C/C++ inference engine
-   - GPU kernels (CUDA/Metal)
-   - Production deployment
-   - **Use for**: Running LLMs with TurboQuant KV cache
+### The TurboQuant Solution
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              THE SOLUTION                                │
+├─────────────────────────────────────────────────────────┤
+│  TurboQuant reduces memory by 75-87% with:              │
+│  ✅ Unbiased quantization (no quality loss)             │
+│  ✅ GPU acceleration (10-50x faster)                    │
+│  ✅ Production ready (C++/Python/Metal/CUDA)            │
+│                                                         │
+│  Result:                                                  │
+│  • 7B Model @ 32K context = 16 GB VRAM   ✅            │
+│  • 1M Embeddings          = 1.25 GB RAM   ✅           │
+│  • Run on RTX 3090/4090   = YES           ✅           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### High-Level Architecture
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                   TURBOQUANT ECOSYSTEM                    │
+├──────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌────────────────────┐         ┌────────────────────┐  │
+│  │   Python Package   │         │   llama.cpp Fork   │  │
+│  │  (turboquant-app/) │         │  (llama.cpp/)      │  │
+│  │                    │         │                    │  │
+│  │  • Quantization    │◄───────►│  • C/C++ Core      │  │
+│  │  • Algorithms      │  Sync   │  • Metal Kernels   │  │
+│  │  • Plugins         │         │  • CUDA Kernels    │  │
+│  │  • FastAPI         │         │  • GGUF Format     │  │
+│  │  • Gradio UI       │         │  • Production      │  │
+│  └────────────────────┘         └────────────────────┘  │
+│           │                              │               │
+│           └──────────┬───────────────────┘               │
+│                      │                                   │
+│                      ▼                                   │
+│         ┌────────────────────────┐                      │
+│         │  SHARED TURBOQUANT     │                      │
+│         │  CORE ALGORITHMS       │                      │
+│         │                        │                      │
+│         │  Stage 1: Scalar Quant │                      │
+│         │  Stage 2: QJL Residual │                      │
+│         │  Bit Packing           │                      │
+│         └────────────────────────┘                      │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -65,6 +117,36 @@ from turboquant.integrations.plugins import OllamaPlugin
 ---
 
 ## 📦 What's In This Repository
+
+### Repository Structure
+
+```
+turboquant-app/ (Repository Root)
+│
+├── turboquant-app/          ← Your PRODUCTION Python package
+│   ├── core/                (28 modules - 100% complete)
+│   ├── integrations/        (8 plugins)
+│   ├── service.py           (FastAPI)
+│   ├── app.py               (Gradio)
+│   └── benchmarks/          (Performance tests)
+│
+├── llama.cpp/               ← Production BINARIES
+│   └── turboquant-llama-cpp/
+│       ├── main             (LLM inference)
+│       ├── server           (HTTP API)
+│       └── quantize         (Model converter)
+│
+├── llama-cpp/               ← REFERENCE implementation
+│   ├── turboquant/          (Original Python code)
+│   ├── llama.cpp/           (C/C++ source)
+│   ├── tests/               (500+ tests)
+│   ├── benchmarks/          (Academic)
+│   └── docs/                (Research docs)
+│
+├── ARCHITECTURE.md          ← System architecture diagrams
+├── CUDA_SETUP.md            ← CUDA installation guide
+└── README.md                ← This file
+```
 
 ### Python Package (`turboquant-app/`)
 
