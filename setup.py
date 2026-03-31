@@ -2,8 +2,8 @@ from setuptools import setup, find_packages
 
 setup(
     name="turboquant",
-    version="0.1.0",
-    description="TurboQuant: Online Vector Quantization with Near-optimal Distortion Rate",
+    version="1.3.0",
+    description="TurboQuant: Complete LLM Quantization Platform with 75% Memory Reduction",
     author="TurboQuant Contributors",
     packages=find_packages(),
     install_requires=[

@@ -1,6 +1,6 @@
 # TurboQuant - Complete LLM Quantization Platform
 
-**Version**: 1.2.0 | **Date**: March 31, 2026 | **Status**: ✅ Production Ready
+**Version**: 1.3.0 | **Date**: March 31, 2026 | **Status**: ✅ Production Ready
 
 ---
 

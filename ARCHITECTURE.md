@@ -1,6 +1,6 @@
 # TurboQuant Architecture
 
-**Version**: 1.2.0 | **Date**: March 31, 2026
+**Version**: 1.3.0 | **Date**: March 31, 2026
 
 ---
 
